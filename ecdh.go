@@ -7,6 +7,7 @@ import (
 	"crypto/ecdh"
 	"crypto/ecdsa"
 	"crypto/rand"
+	"crypto/sha256"
 	"crypto/x509"
 	"encoding/binary"
 	"fmt"
@@ -22,7 +23,7 @@ func ECDHEncrypt(data []byte, remote *ecdh.PublicKey, rnd io.Reader) ([]byte, er
 	if rnd == nil {
 		rnd = rand.Reader
 	}
-	priv, err := ecdh.P256().GenerateKey(rnd)
+	priv, err := remote.Curve().GenerateKey(rnd)
 	if err != nil {
 		return nil, err
 	}
@@ -32,18 +33,16 @@ func ECDHEncrypt(data []byte, remote *ecdh.PublicKey, rnd io.Reader) ([]byte, er
 		return nil, err
 	}
 
-	defer func() {
-		for n := range secret {
-			secret[n] = 0
-		}
-	}()
+	defer MemClr(secret)
+	secretHash := Hash(secret, sha256.New)
+	defer MemClr(secretHash)
 
 	pub, err := x509.MarshalPKIXPublicKey(priv.Public())
 	if err != nil {
 		return nil, err
 	}
 
-	algo, err := aes.NewCipher(secret)
+	algo, err := aes.NewCipher(secretHash)
 	if err != nil {
 		return nil, err
 	}
