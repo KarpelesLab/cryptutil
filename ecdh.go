@@ -18,8 +18,11 @@ type ECDHHandler interface {
 }
 
 // ECDHEncrypt encrypts data for receiving by remote
-func ECDHEncrypt(data []byte, remote *ecdh.PublicKey) ([]byte, error) {
-	priv, err := ecdh.P256().GenerateKey(rand.Reader)
+func ECDHEncrypt(data []byte, remote *ecdh.PublicKey, rnd io.Reader) ([]byte, error) {
+	if rnd == nil {
+		rnd = rand.Reader
+	}
+	priv, err := ecdh.P256().GenerateKey(rnd)
 	if err != nil {
 		return nil, err
 	}
