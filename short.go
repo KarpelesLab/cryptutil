@@ -35,7 +35,7 @@ func EncryptShortBuffer(k []byte, rcvd crypto.PublicKey) ([]byte, error) {
 	}
 }
 
-// DecryptShortBuffer decrypts a given short buffer
+// DecryptShortBuffer decrypts a given buffer
 func DecryptShortBuffer(k []byte, rcvd any) ([]byte, error) {
 	switch r := rcvd.(type) {
 	case ECDHHandler:
