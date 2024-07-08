@@ -1,3 +1,5 @@
+[![GoDoc](https://godoc.org/github.com/KarpelesLab/cryptutil?status.svg)](https://godoc.org/github.com/KarpelesLab/cryptutil)
+
 # cryptutil
 
 Some tools for handling common crypto tasks not found in the go standard library
@@ -31,3 +33,7 @@ res, info, err := opener.Open(bottle)
 // Then you can inspect info to see which signatures were verified, and how many
 // layers of encryption were decrypted
 ```
+
+## ID Card
+
+ID Cards can be used by entities with a signing key to provide alternate encryption keys.

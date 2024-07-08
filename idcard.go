@@ -64,6 +64,11 @@ func (id *IDCard) GetKeys(purpose string) []crypto.PublicKey {
 		if !good {
 			continue
 		}
+		if sub.Expires != nil {
+			if time.Until(*sub.Expires) <= 0 {
+				continue
+			}
+		}
 		dec, err := x509.ParsePKIXPublicKey(sub.Key)
 		if err == nil {
 			res = append(res, dec)
