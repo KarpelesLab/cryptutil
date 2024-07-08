@@ -39,16 +39,16 @@ type Bottle struct {
 
 type MessageRecipient struct {
 	_         struct{} `cbor:",toarray"`
-	Type      int      `json:"typ"` // always 0 (for now)
-	Recipient []byte   `json:"key"` // recipient's public key
-	Data      []byte   `json:"dat"` // encrypted key payload (only recipient's eyes)
+	Type      int      `json:"typ,omitempty"` // always 0 (for now)
+	Recipient []byte   `json:"key"`           // recipient's public key
+	Data      []byte   `json:"dat"`           // encrypted key payload (only recipient's eyes)
 }
 
 type MessageSignature struct {
 	_      struct{} `cbor:",toarray"`
-	Type   int      `json:"typ"` // always 0 (for now)
-	Signer []byte   `json:"key"` // signature's key
-	Data   []byte   `json:"dat"` // signature payload, similar format to jwt (NOTE: ECDSA signatures are weird)
+	Type   int      `json:"typ,omitempty"` // always 0 (for now)
+	Signer []byte   `json:"key"`           // signature's key
+	Data   []byte   `json:"dat"`           // signature payload, similar format to jwt (NOTE: ECDSA signatures are weird)
 }
 
 func NewBottle(data []byte) *Bottle {
