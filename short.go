@@ -40,6 +40,13 @@ func DecryptShortBuffer(k []byte, rcvd any) ([]byte, error) {
 	switch r := rcvd.(type) {
 	case ECDHHandler:
 		return ECDHDecrypt(k, r)
+	case crypto.Decrypter:
+		switch r.Public().(type) {
+		case *rsa.PublicKey:
+			return r.Decrypt(rand.Reader, k, &rsa.OAEPOptions{Hash: crypto.SHA256})
+		default:
+			return r.Decrypt(rand.Reader, k, nil)
+		}
 	case interface {
 		ECDH() (*ecdh.PrivateKey, error)
 	}:

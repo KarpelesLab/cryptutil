@@ -4,8 +4,14 @@ import (
 	"crypto"
 	"crypto/aes"
 	"crypto/cipher"
+	"crypto/ecdsa"
+	"crypto/ed25519"
 	"crypto/rand"
+	"crypto/rsa"
+	"crypto/sha256"
 	"crypto/x509"
+	"errors"
+	"fmt"
 	"io"
 
 	"github.com/fxamacker/cbor/v2"
@@ -141,11 +147,18 @@ func (m *Bottle) Encrypt(recipients ...crypto.PublicKey) error {
 //
 // Attempting to apply encryption to a message with a signature will always cause it to be bottled up
 func (m *Bottle) Sign(key crypto.Signer) error {
-	pub, err := x509.MarshalPKIXPublicKey(key.Public())
+	pubObj := key.Public()
+	pub, err := x509.MarshalPKIXPublicKey(pubObj)
 	if err != nil {
 		return err
 	}
-	sig, err := key.Sign(rand.Reader, m.Message, nil)
+	var sig []byte
+	switch pubObj.(type) {
+	case ed25519.PublicKey:
+		sig, err = key.Sign(rand.Reader, m.Message, crypto.Hash(0))
+	default:
+		sig, err = key.Sign(rand.Reader, Hash(m.Message, sha256.New), crypto.SHA256)
+	}
 	if err != nil {
 		return err
 	}
@@ -155,4 +168,31 @@ func (m *Bottle) Sign(key crypto.Signer) error {
 	}
 	m.Signatures = append(m.Signatures, s)
 	return nil
+}
+
+func (sig *MessageSignature) Verify(buf []byte) error {
+	k, err := x509.ParsePKIXPublicKey(sig.Signer)
+	if err != nil {
+		return err
+	}
+	switch pub := k.(type) {
+	case *rsa.PublicKey:
+		return rsa.VerifyPKCS1v15(pub, crypto.SHA256, Hash(buf, sha256.New), sig.Data)
+	case *ecdsa.PublicKey:
+		if !ecdsa.VerifyASN1(pub, Hash(buf, sha256.New), sig.Data) {
+			return errors.New("signature verification failed")
+		}
+		return nil
+	case ed25519.PublicKey:
+		if !ed25519.Verify(pub, buf, sig.Data) {
+			return errors.New("signature verification failed")
+		}
+		return nil
+	default:
+		return fmt.Errorf("unsupported signature key type %T", k)
+	}
+}
+
+func (r *MessageRecipient) OpenWith(k any) ([]byte, error) {
+	return DecryptShortBuffer(r.Data, k)
 }
