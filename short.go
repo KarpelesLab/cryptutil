@@ -2,8 +2,6 @@ package cryptutil
 
 import (
 	"crypto"
-	"crypto/aes"
-	"crypto/cipher"
 	"crypto/ecdh"
 	"crypto/ecdsa"
 	"crypto/ed25519"
@@ -11,7 +9,6 @@ import (
 	"crypto/rsa"
 	"crypto/sha256"
 	"fmt"
-	"io"
 )
 
 // EncryptShortBuffer performs a simple encryption of a buffer
@@ -32,34 +29,7 @@ func EncryptShortBuffer(k []byte, rcvd crypto.PublicKey) ([]byte, error) {
 		}
 		return EncryptShortBuffer(k, nr)
 	case *ecdh.PublicKey:
-		priv, err := r.Curve().GenerateKey(rand.Reader)
-		if err != nil {
-			return nil, err
-		}
-		sk, err := priv.ECDH(r)
-		if err != nil {
-			return nil, err
-		}
-		defer MemClr(sk)
-		h := sha256.Sum256(sk)
-		defer MemClr(h[:])
-		// invoke aes
-		bc, err := aes.NewCipher(h[:])
-		if err != nil {
-			return nil, err
-		}
-		privB := priv.Bytes()
-		bs := bc.BlockSize()
-		dst := make([]byte, bs+len(privB)+len(k))
-		_, err = io.ReadFull(rand.Reader, dst[:bs])
-		if err != nil {
-			return nil, err
-		}
-		copy(dst[bs:bs+len(privB)], privB)
-		// encode
-		enc := cipher.NewCFBEncrypter(bc, dst[:bs])
-		enc.XORKeyStream(dst[bs+len(privB):], k)
-		return dst, nil
+		return ECDHEncrypt(k, r, rand.Reader)
 	default:
 		return nil, fmt.Errorf("unsupported key type %T", r)
 	}
@@ -69,7 +39,7 @@ func EncryptShortBuffer(k []byte, rcvd crypto.PublicKey) ([]byte, error) {
 func DecryptShortBuffer(k []byte, rcvd any) ([]byte, error) {
 	switch r := rcvd.(type) {
 	case ECDHHandler:
-		// message is 16 bytes IV (AES blocksize is always 16), ephemeral public key, and data
+		return ECDHDecrypt(k, r)
 	case interface {
 		ECDH() (*ecdh.PrivateKey, error)
 	}:

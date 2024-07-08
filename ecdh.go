@@ -122,13 +122,11 @@ func ECDHDecrypt(data []byte, privateKey ECDHHandler) ([]byte, error) {
 		if err != nil {
 			return nil, e(err)
 		}
-		defer func() {
-			for n := range secret {
-				secret[n] = 0
-			}
-		}()
+		defer MemClr(secret)
+		secretHash := Hash(secret, sha256.New)
+		defer MemClr(secretHash)
 
-		algo, err := aes.NewCipher(secret)
+		algo, err := aes.NewCipher(secretHash)
 		if err != nil {
 			return nil, e(err)
 		}
