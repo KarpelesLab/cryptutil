@@ -6,7 +6,6 @@ import (
 	"crypto/cipher"
 	"crypto/sha256"
 	"crypto/x509"
-	"errors"
 	"fmt"
 
 	"github.com/fxamacker/cbor"
@@ -73,6 +72,9 @@ func (o *Opener) Open(b *Bottle) ([]byte, *OpenResult, error) {
 			}
 			b = nb
 		case AES:
+			if o.keys == nil {
+				return nil, res, ErrNoAppropriateKey
+			}
 			var k []byte
 			for _, sub := range b.Recipients {
 				decKey, ok := o.keys[sha256.Sum256(sub.Recipient)]
@@ -85,7 +87,7 @@ func (o *Opener) Open(b *Bottle) ([]byte, *OpenResult, error) {
 				}
 			}
 			if k == nil {
-				return nil, res, errors.New("no appropriate key available to open bottle")
+				return nil, res, ErrNoAppropriateKey
 			}
 			defer MemClr(k)
 

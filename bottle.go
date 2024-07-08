@@ -51,8 +51,14 @@ type MessageSignature struct {
 	Data   []byte   `json:"dat"`           // signature payload, similar format to jwt (NOTE: ECDSA signatures are weird)
 }
 
+// NewBottle will return a new clean bottle only containing the provided data
 func NewBottle(data []byte) *Bottle {
 	return &Bottle{Format: ClearText, Message: data, Header: make(map[string]any)}
+}
+
+// NewCborBottle considers data to be a cbor-encoded Bottle, and will return a Bottle container matching this assumption
+func NewCborBottle(data []byte) *Bottle {
+	return &Bottle{Format: CborBottle, Message: data, Header: make(map[string]any)}
 }
 
 // BottleUp encodes the current message into itself, allowing application of extra layers
@@ -116,21 +122,11 @@ func (m *Bottle) Encrypt(recipients ...crypto.PublicKey) error {
 	// now that we're ready to encrypt, store k encrypted for each recipient
 	var final []*MessageRecipient
 	for _, r := range recipients {
-		buf, err := EncryptShortBuffer(k, r)
+		rl, err := makeRecipients(k, r)
 		if err != nil {
 			return err
 		}
-
-		rBin, err := x509.MarshalPKIXPublicKey(r)
-		if err != nil {
-			return err
-		}
-
-		r := &MessageRecipient{
-			Recipient: rBin,
-			Data:      buf,
-		}
-		final = append(final, r)
+		final = append(final, rl...)
 	}
 
 	// set newly encrypted message
@@ -139,6 +135,40 @@ func (m *Bottle) Encrypt(recipients ...crypto.PublicKey) error {
 	m.Recipients = final
 
 	return nil
+}
+
+func makeRecipients(k []byte, r crypto.PublicKey) ([]*MessageRecipient, error) {
+	if keyProv, ok := r.(interface {
+		GetKeys(purpose string) []crypto.PublicKey
+	}); ok {
+		keys := keyProv.GetKeys("decrypt")
+		var res []*MessageRecipient
+		for _, subkey := range keys {
+			subres, err := makeRecipients(k, subkey)
+			if err != nil {
+				return res, err
+			}
+			res = append(res, subres...)
+		}
+		return res, nil
+	}
+
+	buf, err := EncryptShortBuffer(k, r)
+	if err != nil {
+		return nil, err
+	}
+
+	rBin, err := x509.MarshalPKIXPublicKey(r)
+	if err != nil {
+		return nil, err
+	}
+
+	res := &MessageRecipient{
+		Recipient: rBin,
+		Data:      buf,
+	}
+
+	return []*MessageRecipient{res}, nil
 }
 
 // Sign signs the message, and can be called multiple times. Any message can be signed, including a
