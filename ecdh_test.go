@@ -2,8 +2,6 @@ package cryptutil_test
 
 import (
 	"bytes"
-	"crypto/ecdh"
-	"encoding/base64"
 	"fmt"
 	"testing"
 
@@ -16,11 +14,6 @@ func must[T any](v T, err error) T {
 	}
 	return v
 }
-
-var (
-	alice = must(ecdh.P256().NewPrivateKey(must(base64.RawURLEncoding.DecodeString("_J1nPevoYc3bYCs7htscdnPgregNasbZcufMTKkF3LI"))))
-	bob   = must(ecdh.P256().NewPrivateKey(must(base64.RawURLEncoding.DecodeString("w9V4eOe1TdFpNaA-omztVs090w6hd8rPBT47e_gfF-Y"))))
-)
 
 func TestCryptECDH(t *testing.T) {
 	msg := []byte("message to alice")
