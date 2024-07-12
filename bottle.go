@@ -22,7 +22,8 @@ type MessageFormat int
 const (
 	ClearText  MessageFormat = iota
 	CborBottle               // bottle in a bottle
-	AES                      // AES+AEAD encrypted bottle
+	AES                      // AES+AEAD encrypted cbor bottle
+	JsonBottle               // bottle in a bottle (json version)
 )
 
 // Bottle is a signed, encrypted message container. Any Format other than ClearText means the Message contains
@@ -56,9 +57,14 @@ func NewBottle(data []byte) *Bottle {
 	return &Bottle{Format: ClearText, Message: data, Header: make(map[string]any)}
 }
 
-// NewCborBottle considers data to be a cbor-encoded Bottle, and will return a Bottle container matching this assumption
-func NewCborBottle(data []byte) *Bottle {
+// AsCborBottle considers data to be a cbor-encoded Bottle, and will return a Bottle container matching this assumption
+func AsCborBottle(data []byte) *Bottle {
 	return &Bottle{Format: CborBottle, Message: data, Header: make(map[string]any)}
+}
+
+// AsJsonBottle considers data to be a json-encoded Bottle, and will return a Bottle container matching this assumption
+func AsJsonBottle(data []byte) *Bottle {
+	return &Bottle{Format: JsonBottle, Message: data, Header: make(map[string]any)}
 }
 
 // BottleUp encodes the current message into itself, allowing application of extra layers

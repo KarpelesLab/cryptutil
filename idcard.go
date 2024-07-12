@@ -124,7 +124,7 @@ func (id *IDCard) SetKeyDuration(k crypto.PublicKey, t time.Duration) error {
 
 // UnmarshalBinary will read a signed ID card, returning an error if it wasn't signed
 func (id *IDCard) UnmarshalBinary(b []byte) error {
-	res, info, err := (&Opener{}).Open(NewCborBottle(b))
+	res, info, err := (&Opener{}).OpenCbor(b)
 	if err != nil {
 		return err
 	}

@@ -6,6 +6,7 @@ import (
 	"crypto/cipher"
 	"crypto/sha256"
 	"crypto/x509"
+	"encoding/json"
 	"fmt"
 
 	"github.com/fxamacker/cbor"
@@ -46,6 +47,16 @@ func (o *Opener) addKey(k any) error {
 	return nil
 }
 
+// OpenCbor opens the given [Bottle] encoded as cbor data.
+func (o *Opener) OpenCbor(b []byte) ([]byte, *OpenResult, error) {
+	return o.Open(AsCborBottle(b))
+}
+
+// OpenJson opens the given [Bottle] encoded as json data.
+func (o *Opener) OpenJson(b []byte) ([]byte, *OpenResult, error) {
+	return o.Open(AsJsonBottle(b))
+}
+
 // Open opens the given [Bottle], decrypting any encrypted elements, checking all signatures and returning the embedded buffer in the end
 func (o *Opener) Open(b *Bottle) ([]byte, *OpenResult, error) {
 	res := &OpenResult{}
@@ -67,6 +78,13 @@ func (o *Opener) Open(b *Bottle) ([]byte, *OpenResult, error) {
 		case CborBottle:
 			var nb *Bottle
 			err := cbor.Unmarshal(b.Message, &nb)
+			if err != nil {
+				return nil, res, err
+			}
+			b = nb
+		case JsonBottle:
+			var nb *Bottle
+			err := json.Unmarshal(b.Message, &nb)
 			if err != nil {
 				return nil, res, err
 			}
