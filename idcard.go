@@ -14,10 +14,11 @@ import (
 // IDCard is a basic ID for a given signature key that allows it to
 // specify keys that can be used for encryption/etc
 type IDCard struct {
-	Self    []byte    `json:"self" cbor:"1,keyasint"` // our own public key (PKIX)
-	Issued  time.Time `json:"iss" cbor:"2,keyasint"`  // issuance date. If two IDCard exist for the same public key, the most recent one will be taken into account
-	SubKeys []*SubKey `json:"sub" cbor:"3,keyasint"`  // known sub keys
-	Revoke  []*SubKey `json:"rev" cbor:"4,keyasint"`  // any key into the revoke list will be strongly rejected
+	Self    []byte        `json:"self" cbor:"1,keyasint"` // our own public key (PKIX)
+	Issued  time.Time     `json:"iss" cbor:"2,keyasint"`  // issuance date. If two IDCard exist for the same public key, the most recent one will be taken into account
+	SubKeys []*SubKey     `json:"sub" cbor:"3,keyasint"`  // known sub keys
+	Revoke  []*SubKey     `json:"rev" cbor:"4,keyasint"`  // any key into the revoke list will be strongly rejected
+	Groups  []*Membership `json:"grp" cbor:"5,keyasint"`  // groups this key is member of
 }
 
 // SubKey is a key found in a given id card
@@ -26,6 +27,13 @@ type SubKey struct {
 	Issued   time.Time  `json:"iss" cbor:"2,keyasint"`                     // issuance (addition) date
 	Expires  *time.Time `json:"exp,omitempty" cbor:"3,keyasint,omitempty"` // expiration date (if any)
 	Purposes []string   `json:"pur" cbor:"4,keyasint"`                     // purposes: can contain "sign", "decrypt"
+}
+
+type Membership struct {
+	Subject   []byte            `json:"sub" cbor:"1,keyasint"` // must be == parent.Self (if empty, fill with parent.Self before sig)
+	Key       []byte            `json:"key" cbor:"2,keyasint"` // group key (group identification)
+	Info      map[string]string `json:"nfo" cbor:"3,keyasint"` // subject information (name, etc)
+	Signature []byte            `json:"sig" cbor:"4,keyasint"` // signature of structure with sign=nil by group key
 }
 
 // NewIDCard generates a new ID card for the given public key
