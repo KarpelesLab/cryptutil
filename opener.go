@@ -17,10 +17,22 @@ type Opener struct {
 	keys map[[32]byte]any
 }
 
+// EmptyOpener is an opener without any keys that can open bottles, but can't check keys
+var EmptyOpener = &Opener{}
+
 type OpenResult struct {
 	Decryption int                 // number of performed decryptions
 	Signatures []*MessageSignature // verified message signatures
 	Bottles    []*Bottle
+}
+
+// Last returns the last (inside-most) bottle
+func (or *OpenResult) Last() *Bottle {
+	if len(or.Bottles) == 0 {
+		// should never happen
+		panic("OpenResult has no bottles")
+	}
+	return or.Bottles[len(or.Bottles)-1]
 }
 
 // NewOpener returns an opener that can be used to open a [Bottle] using any or all of the given keys.
@@ -32,6 +44,15 @@ func NewOpener(keys ...any) (*Opener, error) {
 		}
 	}
 	return res, nil
+}
+
+// MustOpener returns an opener that can be used to open a [Bottle] and panics if it fails
+func MustOpener(keys ...any) *Opener {
+	op, err := NewOpener(keys...)
+	if err != nil {
+		panic(err)
+	}
+	return op
 }
 
 func (o *Opener) addKey(k any) error {
@@ -46,6 +67,38 @@ func (o *Opener) addKey(k any) error {
 	// we could also use string(pub), but having a string of non utf-8 data isn't something I like
 	o.keys[sha256.Sum256(pub)] = k
 	return nil
+}
+
+// UnmarshalJson will open the given json-encoded bottle and pour the contents into v
+func (o *Opener) UnmarshalJson(b []byte, v any) (*OpenResult, error) {
+	return o.Unmarshal(AsJsonBottle(b), v)
+}
+
+// UnmarshalCbor will open the given cbor-encoded bottle and pour the contents into v
+func (o *Opener) UnmarshalCbor(b []byte, v any) (*OpenResult, error) {
+	return o.Unmarshal(AsCborBottle(b), v)
+}
+
+// Unmarshal will open the given bottle and pour the contents into v
+func (o *Opener) Unmarshal(b *Bottle, v any) (*OpenResult, error) {
+	buf, res, err := o.Open(b)
+	if err != nil {
+		return res, err
+	}
+	ct, ok := res.Last().Header["ct"]
+	if !ok {
+		ct = "cbor" // default
+	}
+	switch ct {
+	case "cbor":
+		err = cbor.Unmarshal(buf, v)
+		return res, err
+	case "json":
+		err = json.Unmarshal(buf, v)
+		return res, err
+	default:
+		return res, fmt.Errorf("unsupported content type %s", ct)
+	}
 }
 
 // OpenCbor opens the given [Bottle] encoded as cbor data.

@@ -50,6 +50,18 @@ func NewBottle(data []byte) *Bottle {
 	return &Bottle{Format: ClearText, Message: data, Header: make(map[string]any)}
 }
 
+// Marshal will use cbor to marshal data into a bottle
+func Marshal(data any) (*Bottle, error) {
+	buf, err := cbor.Marshal(data)
+	if err != nil {
+		return nil, err
+	}
+	b := NewBottle(buf)
+	b.Header["ct"] = "cbor" // content-type: cbor
+
+	return b, nil
+}
+
 // AsCborBottle considers data to be a cbor-encoded Bottle, and will return a Bottle container matching this assumption
 func AsCborBottle(data []byte) *Bottle {
 	return &Bottle{Format: CborBottle, Message: data, Header: make(map[string]any)}
