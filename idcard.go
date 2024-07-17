@@ -14,11 +14,12 @@ import (
 // IDCard is a basic ID for a given signature key that allows it to
 // specify keys that can be used for encryption/etc
 type IDCard struct {
-	Self    []byte        `json:"self" cbor:"1,keyasint"` // our own public key (PKIX)
-	Issued  time.Time     `json:"iss" cbor:"2,keyasint"`  // issuance date. If two IDCard exist for the same public key, the most recent one will be taken into account
-	SubKeys []*SubKey     `json:"sub" cbor:"3,keyasint"`  // known sub keys
-	Revoke  []*SubKey     `json:"rev" cbor:"4,keyasint"`  // any key into the revoke list will be strongly rejected
-	Groups  []*Membership `json:"grp" cbor:"5,keyasint"`  // groups this key is member of
+	Self    []byte            `json:"self" cbor:"1,keyasint"` // our own public key (PKIX)
+	Issued  time.Time         `json:"iss" cbor:"2,keyasint"`  // issuance date. If two IDCard exist for the same public key, the most recent one will be taken into account
+	SubKeys []*SubKey         `json:"sub" cbor:"3,keyasint"`  // known sub keys
+	Revoke  []*SubKey         `json:"rev" cbor:"4,keyasint"`  // any key into the revoke list will be strongly rejected
+	Groups  []*Membership     `json:"grp" cbor:"5,keyasint"`  // groups this key is member of
+	Meta    map[string]string `json:"meta" cbor:"6,keyasint"` // self-defined metadata
 }
 
 // SubKey is a key found in a given id card
