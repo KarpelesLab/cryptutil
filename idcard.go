@@ -30,13 +30,15 @@ type SubKey struct {
 	Purposes []string   `json:"pur" cbor:"4,keyasint"`                     // purposes: can contain "sign", "decrypt"
 }
 
+// Membership is a membership in a group.
 type Membership struct {
 	Subject   []byte            `json:"sub" cbor:"1,keyasint"` // must be == parent.Self (if empty, fill with parent.Self before sig)
 	Key       []byte            `json:"key" cbor:"2,keyasint"` // group key (group identification)
 	Status    string            `json:"sta" cbor:"3,keyasint"` // status of membership (valid|suspended)
 	Issued    time.Time         `json:"iss" cbor:"4,keyasint"` // update time of membership info
 	Info      map[string]string `json:"nfo" cbor:"5,keyasint"` // subject information (name, etc)
-	Signature []byte            `json:"sig" cbor:"6,keyasint"` // signature of structure with sign=nil by group key
+	SignKey   []byte            `json:"sky" cbor:"6,keyasint"` // signature generating key (must be listed as sign key for the Key's IDCard)
+	Signature []byte            `json:"sig" cbor:"7,keyasint"` // signature of structure with sign=nil by group key
 }
 
 // NewIDCard generates a new ID card for the given public key
