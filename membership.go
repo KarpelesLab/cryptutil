@@ -2,9 +2,6 @@ package cryptutil
 
 import (
 	"crypto"
-	"crypto/ed25519"
-	"crypto/rand"
-	"crypto/sha256"
 	"crypto/x509"
 	"errors"
 	"time"
@@ -35,7 +32,28 @@ func NewMembership(member *IDCard, key []byte) *Membership {
 	return res
 }
 
-func (m *Membership) Sign(key crypto.Signer) error {
+// SignatureBytes returns a representation of Membership that can be used to sign or verify the structure
+func (m *Membership) SignatureBytes() ([]byte, error) {
+	cp := &Membership{
+		Subject:   m.Subject,
+		Key:       m.Key,
+		Status:    m.Status,
+		Issued:    m.Issued,
+		Info:      m.Info,
+		SignKey:   m.SignKey,
+		Signature: nil,
+	}
+
+	// generate cbor representation using canonical mode
+	em, err := cbor.CanonicalEncOptions().EncMode()
+	if err != nil {
+		return nil, err
+	}
+	return em.Marshal(cp)
+}
+
+// Sign signs the membership using the provided key
+func (m *Membership) Sign(key crypto.Signer, opts ...crypto.SignerOpts) error {
 	if m.Subject == nil {
 		return errors.New("Subject must be filled prior to signing or verifying a Membership")
 	}
@@ -45,34 +63,18 @@ func (m *Membership) Sign(key crypto.Signer) error {
 	if err != nil {
 		return err
 	}
-
-	// make a copy for signature
-	cp := &Membership{}
-	*cp = *m
-	cp.SignKey = pubBin
-	cp.Signature = nil
-	// generate cbor representation
-	em, err := cbor.CanonicalEncOptions().EncMode()
-	if err != nil {
-		return err
-	}
-	buf, err := em.Marshal(cp)
-	if err != nil {
-		return err
-	}
-
-	var sig []byte
-	switch pub.(type) {
-	case ed25519.PublicKey:
-		sig, err = key.Sign(rand.Reader, buf, crypto.Hash(0))
-	default:
-		sig, err = key.Sign(rand.Reader, Hash(buf, sha256.New), crypto.SHA256)
-	}
-	if err != nil {
-		return err
-	}
-
 	m.SignKey = pubBin
+
+	buf, err := m.SignatureBytes()
+	if err != nil {
+		return err
+	}
+
+	sig, err := Sign(key, buf, opts...)
+	if err != nil {
+		return err
+	}
+
 	m.Signature = sig
 
 	return nil
