@@ -4,14 +4,10 @@ import (
 	"crypto"
 	"crypto/aes"
 	"crypto/cipher"
-	"crypto/ecdsa"
 	"crypto/ed25519"
 	"crypto/rand"
-	"crypto/rsa"
 	"crypto/sha256"
 	"crypto/x509"
-	"errors"
-	"fmt"
 	"io"
 
 	"github.com/fxamacker/cbor/v2"
@@ -211,22 +207,7 @@ func (sig *MessageSignature) Verify(buf []byte) error {
 	if err != nil {
 		return err
 	}
-	switch pub := k.(type) {
-	case *rsa.PublicKey:
-		return rsa.VerifyPKCS1v15(pub, crypto.SHA256, Hash(buf, sha256.New), sig.Data)
-	case *ecdsa.PublicKey:
-		if !ecdsa.VerifyASN1(pub, Hash(buf, sha256.New), sig.Data) {
-			return errors.New("signature verification failed")
-		}
-		return nil
-	case ed25519.PublicKey:
-		if !ed25519.Verify(pub, buf, sig.Data) {
-			return errors.New("signature verification failed")
-		}
-		return nil
-	default:
-		return fmt.Errorf("unsupported signature key type %T", k)
-	}
+	return Verify(k, buf, sig.Data, crypto.SHA256)
 }
 
 func (r *MessageRecipient) OpenWith(k any) ([]byte, error) {
