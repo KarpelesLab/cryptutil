@@ -5,6 +5,7 @@ import (
 	"crypto"
 	"crypto/x509"
 	"errors"
+	"io"
 	"io/fs"
 	"time"
 
@@ -149,7 +150,7 @@ func (id *IDCard) UnmarshalBinary(b []byte) error {
 }
 
 // Sign will return a signed bottle containing this ID Card
-func (id *IDCard) Sign(k crypto.Signer) ([]byte, error) {
+func (id *IDCard) Sign(rand io.Reader, k crypto.Signer) ([]byte, error) {
 	buf, err := cbor.Marshal(id)
 	if err != nil {
 		return nil, err
@@ -160,7 +161,7 @@ func (id *IDCard) Sign(k crypto.Signer) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	err = bottle.Sign(k)
+	err = bottle.Sign(rand, k)
 	if err != nil {
 		return nil, err
 	}

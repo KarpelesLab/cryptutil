@@ -4,6 +4,7 @@ import (
 	"crypto"
 	"crypto/x509"
 	"errors"
+	"io"
 	"time"
 
 	"github.com/fxamacker/cbor/v2"
@@ -53,7 +54,7 @@ func (m *Membership) SignatureBytes() ([]byte, error) {
 }
 
 // Sign signs the membership using the provided key
-func (m *Membership) Sign(key crypto.Signer, opts ...crypto.SignerOpts) error {
+func (m *Membership) Sign(rand io.Reader, key crypto.Signer, opts ...crypto.SignerOpts) error {
 	if m.Subject == nil {
 		return errors.New("Subject must be filled prior to signing or verifying a Membership")
 	}
@@ -70,7 +71,7 @@ func (m *Membership) Sign(key crypto.Signer, opts ...crypto.SignerOpts) error {
 		return err
 	}
 
-	sig, err := Sign(key, buf, opts...)
+	sig, err := Sign(rand, key, buf, opts...)
 	if err != nil {
 		return err
 	}

@@ -9,7 +9,7 @@ import (
 
 func TestCryptECDH(t *testing.T) {
 	msg := []byte("message to alice")
-	enc, err := cryptutil.ECDHEncrypt(msg, must(alice.ECDH()).PublicKey(), nil)
+	enc, err := cryptutil.ECDHEncrypt(nil, msg, must(alice.ECDH()).PublicKey())
 	if err != nil {
 		t.Errorf("failed to encrypt: %s", err)
 	}

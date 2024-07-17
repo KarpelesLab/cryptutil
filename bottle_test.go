@@ -1,6 +1,7 @@
 package cryptutil_test
 
 import (
+	"crypto/rand"
 	"log"
 	"testing"
 
@@ -11,9 +12,9 @@ func TestBottle(t *testing.T) {
 	bottle := cryptutil.NewBottle([]byte("hello world!"))
 
 	// encrypt for bob
-	bottle.Encrypt(bob.Public())
+	bottle.Encrypt(rand.Reader, bob.Public())
 	bottle.BottleUp()
-	bottle.Sign(alice) // from Alice
+	bottle.Sign(rand.Reader, alice) // from Alice
 
 	opener := must(cryptutil.NewOpener(bob))
 	res, info, err := opener.Open(bottle)

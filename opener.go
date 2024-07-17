@@ -23,6 +23,7 @@ type OpenResult struct {
 	Bottles    []*Bottle
 }
 
+// NewOpener returns an opener that can be used to open a [Bottle] using any or all of the given keys.
 func NewOpener(keys ...any) (*Opener, error) {
 	res := &Opener{keys: make(map[[32]byte]any)}
 	for _, k := range keys {

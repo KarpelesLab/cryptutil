@@ -4,36 +4,36 @@ import (
 	"crypto"
 	"crypto/ecdsa"
 	"crypto/ed25519"
-	"crypto/rand"
 	"crypto/rsa"
 	"fmt"
+	"io"
 )
 
 // Sign generates a signature for the given buffer. Hash will be performed as needed
-func Sign(key crypto.Signer, buf []byte, opts ...crypto.SignerOpts) ([]byte, error) {
+func Sign(rand io.Reader, key crypto.Signer, buf []byte, opts ...crypto.SignerOpts) ([]byte, error) {
 	pub := key.Public()
 	switch pub.(type) {
 	case *rsa.PublicKey:
 		if opt := getSignerOpt[rsa.PSSOptions](opts); opt != nil {
-			return key.Sign(rand.Reader, Hash(buf, opt.Hash.New), opt)
+			return key.Sign(rand, Hash(buf, opt.Hash.New), opt)
 		}
 		hf := getHashFunc(opts)
-		return key.Sign(rand.Reader, Hash(buf, hf.New), hf)
+		return key.Sign(rand, Hash(buf, hf.New), hf)
 	case ed25519.PublicKey:
 		if opt := getSignerOpt[ed25519.Options](opts); opt != nil {
 			if opt.Hash == crypto.SHA512 {
 				buf = Hash(buf, crypto.SHA512.New)
 			}
-			return key.Sign(rand.Reader, buf, opt)
+			return key.Sign(rand, buf, opt)
 		}
 		hf := getHashFunc(opts)
 		if hf == crypto.SHA512 {
-			return key.Sign(rand.Reader, Hash(buf, hf.New), hf)
+			return key.Sign(rand, Hash(buf, hf.New), hf)
 		}
-		return key.Sign(rand.Reader, buf, crypto.Hash(0))
+		return key.Sign(rand, buf, crypto.Hash(0))
 	default:
 		hf := getHashFunc(opts)
-		return key.Sign(rand.Reader, Hash(buf, hf.New), hf)
+		return key.Sign(rand, Hash(buf, hf.New), hf)
 	}
 }
 

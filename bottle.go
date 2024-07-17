@@ -4,7 +4,6 @@ import (
 	"crypto"
 	"crypto/aes"
 	"crypto/cipher"
-	"crypto/rand"
 	"crypto/x509"
 	"io"
 
@@ -86,7 +85,7 @@ func (m *Bottle) IsCleanBottle() bool {
 }
 
 // Encrypt encrypts the message so only recipients can decrypt it
-func (m *Bottle) Encrypt(recipients ...crypto.PublicKey) error {
+func (m *Bottle) Encrypt(rand io.Reader, recipients ...crypto.PublicKey) error {
 	// first, make sure we're dealing with a clean bottle
 	if !m.IsCleanBottle() {
 		err := m.BottleUp()
@@ -97,7 +96,7 @@ func (m *Bottle) Encrypt(recipients ...crypto.PublicKey) error {
 	// encrypt Buffer with a randomly generated key
 	k := make([]byte, 32)
 	defer MemClr(k)
-	_, err := io.ReadFull(rand.Reader, k)
+	_, err := io.ReadFull(rand, k)
 	if err != nil {
 		return err
 	}
@@ -113,7 +112,7 @@ func (m *Bottle) Encrypt(recipients ...crypto.PublicKey) error {
 	}
 
 	nonce := make([]byte, gcm.NonceSize())
-	_, err = io.ReadFull(rand.Reader, nonce)
+	_, err = io.ReadFull(rand, nonce)
 	if err != nil {
 		return err
 	}
@@ -122,7 +121,7 @@ func (m *Bottle) Encrypt(recipients ...crypto.PublicKey) error {
 	// now that we're ready to encrypt, store k encrypted for each recipient
 	var final []*MessageRecipient
 	for _, r := range recipients {
-		rl, err := makeRecipients(k, r)
+		rl, err := makeRecipients(rand, k, r)
 		if err != nil {
 			return err
 		}
@@ -137,14 +136,14 @@ func (m *Bottle) Encrypt(recipients ...crypto.PublicKey) error {
 	return nil
 }
 
-func makeRecipients(k []byte, r crypto.PublicKey) ([]*MessageRecipient, error) {
+func makeRecipients(rand io.Reader, k []byte, r crypto.PublicKey) ([]*MessageRecipient, error) {
 	if keyProv, ok := r.(interface {
 		GetKeys(purpose string) []crypto.PublicKey
 	}); ok {
 		keys := keyProv.GetKeys("decrypt")
 		var res []*MessageRecipient
 		for _, subkey := range keys {
-			subres, err := makeRecipients(k, subkey)
+			subres, err := makeRecipients(rand, k, subkey)
 			if err != nil {
 				return res, err
 			}
@@ -153,7 +152,7 @@ func makeRecipients(k []byte, r crypto.PublicKey) ([]*MessageRecipient, error) {
 		return res, nil
 	}
 
-	buf, err := EncryptShortBuffer(k, r)
+	buf, err := EncryptShortBuffer(rand, k, r)
 	if err != nil {
 		return nil, err
 	}
@@ -176,13 +175,13 @@ func makeRecipients(k []byte, r crypto.PublicKey) ([]*MessageRecipient, error) {
 // to ensure the encryption information is signed too.
 //
 // Attempting to apply encryption to a message with a signature will always cause it to be bottled up
-func (m *Bottle) Sign(key crypto.Signer, opts ...crypto.SignerOpts) error {
+func (m *Bottle) Sign(rand io.Reader, key crypto.Signer, opts ...crypto.SignerOpts) error {
 	pubObj := key.Public()
 	pub, err := x509.MarshalPKIXPublicKey(pubObj)
 	if err != nil {
 		return err
 	}
-	sig, err := Sign(key, m.Message, opts...)
+	sig, err := Sign(rand, key, m.Message, opts...)
 	if err != nil {
 		return err
 	}
