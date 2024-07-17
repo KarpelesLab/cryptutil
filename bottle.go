@@ -5,6 +5,7 @@ import (
 	"crypto/aes"
 	"crypto/cipher"
 	"crypto/x509"
+	"encoding/json"
 	"io"
 
 	"github.com/fxamacker/cbor/v2"
@@ -58,6 +59,18 @@ func Marshal(data any) (*Bottle, error) {
 	}
 	b := NewBottle(buf)
 	b.Header["ct"] = "cbor" // content-type: cbor
+
+	return b, nil
+}
+
+// MarshalJson will use json to marshal data into a bottle
+func MarshalJson(data any) (*Bottle, error) {
+	buf, err := json.Marshal(data)
+	if err != nil {
+		return nil, err
+	}
+	b := NewBottle(buf)
+	b.Header["ct"] = "json" // content-type: cbor
 
 	return b, nil
 }
