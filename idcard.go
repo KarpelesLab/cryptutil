@@ -33,8 +33,10 @@ type SubKey struct {
 type Membership struct {
 	Subject   []byte            `json:"sub" cbor:"1,keyasint"` // must be == parent.Self (if empty, fill with parent.Self before sig)
 	Key       []byte            `json:"key" cbor:"2,keyasint"` // group key (group identification)
-	Info      map[string]string `json:"nfo" cbor:"3,keyasint"` // subject information (name, etc)
-	Signature []byte            `json:"sig" cbor:"4,keyasint"` // signature of structure with sign=nil by group key
+	Status    string            `json:"sta" cbor:"3,keyasint"` // status of membership (valid|suspended)
+	Issued    time.Time         `json:"iss" cbor:"4,keyasint"` // update time of membership info
+	Info      map[string]string `json:"nfo" cbor:"5,keyasint"` // subject information (name, etc)
+	Signature []byte            `json:"sig" cbor:"6,keyasint"` // signature of structure with sign=nil by group key
 }
 
 // NewIDCard generates a new ID card for the given public key
