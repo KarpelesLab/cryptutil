@@ -22,9 +22,9 @@ keeping recovery of the original message fairly easy.
 bottle := cryptutil.NewBottle([]byte("s.o.s. to the world"))
 
 // encrypt for Alice OR Bob (either will be able to open the bottle)
-bottle.Encrypt(bob.Public(), alice.Public())
+bottle.Encrypt(rand.Reader, bob.Public(), alice.Public())
 bottle.BottleUp() // bottle in a bottle, so that the signature includes the encryption
-bottle.Sign(alice) // sign from Alice
+bottle.Sign(rand.Reader, alice) // sign from Alice
 
 // Bob is opening the bottle
 opener, err := cryptutil.NewOpener(bob)
