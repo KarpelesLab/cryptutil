@@ -2,6 +2,7 @@ package cryptutil_test
 
 import (
 	"bytes"
+	"crypto/rand"
 	"testing"
 
 	"github.com/KarpelesLab/cryptutil"
@@ -9,7 +10,7 @@ import (
 
 func TestCryptECDH(t *testing.T) {
 	msg := []byte("message to alice")
-	enc, err := cryptutil.ECDHEncrypt(nil, msg, must(alice.ECDH()).PublicKey())
+	enc, err := cryptutil.ECDHEncrypt(rand.Reader, msg, must(alice.ECDH()).PublicKey())
 	if err != nil {
 		t.Errorf("failed to encrypt: %s", err)
 	}

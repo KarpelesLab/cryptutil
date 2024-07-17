@@ -6,7 +6,6 @@ import (
 	"crypto/cipher"
 	"crypto/ecdh"
 	"crypto/ecdsa"
-	"crypto/rand"
 	"crypto/sha256"
 	"crypto/x509"
 	"encoding/binary"
@@ -20,9 +19,6 @@ type ECDHHandler interface {
 
 // ECDHEncrypt encrypts data for receiving by remote
 func ECDHEncrypt(rnd io.Reader, data []byte, remote *ecdh.PublicKey) ([]byte, error) {
-	if rnd == nil {
-		rnd = rand.Reader
-	}
 	priv, err := remote.Curve().GenerateKey(rnd)
 	if err != nil {
 		return nil, err
@@ -53,7 +49,7 @@ func ECDHEncrypt(rnd io.Reader, data []byte, remote *ecdh.PublicKey) ([]byte, er
 	}
 
 	nonce := make([]byte, gcm.NonceSize())
-	_, err = io.ReadFull(rand.Reader, nonce)
+	_, err = io.ReadFull(rnd, nonce)
 	if err != nil {
 		return nil, err
 	}
