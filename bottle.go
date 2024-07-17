@@ -4,9 +4,7 @@ import (
 	"crypto"
 	"crypto/aes"
 	"crypto/cipher"
-	"crypto/ed25519"
 	"crypto/rand"
-	"crypto/sha256"
 	"crypto/x509"
 	"io"
 
@@ -178,19 +176,13 @@ func makeRecipients(k []byte, r crypto.PublicKey) ([]*MessageRecipient, error) {
 // to ensure the encryption information is signed too.
 //
 // Attempting to apply encryption to a message with a signature will always cause it to be bottled up
-func (m *Bottle) Sign(key crypto.Signer) error {
+func (m *Bottle) Sign(key crypto.Signer, opts ...crypto.SignerOpts) error {
 	pubObj := key.Public()
 	pub, err := x509.MarshalPKIXPublicKey(pubObj)
 	if err != nil {
 		return err
 	}
-	var sig []byte
-	switch pubObj.(type) {
-	case ed25519.PublicKey:
-		sig, err = key.Sign(rand.Reader, m.Message, crypto.Hash(0))
-	default:
-		sig, err = key.Sign(rand.Reader, Hash(m.Message, sha256.New), crypto.SHA256)
-	}
+	sig, err := Sign(key, m.Message, opts...)
 	if err != nil {
 		return err
 	}
@@ -202,12 +194,12 @@ func (m *Bottle) Sign(key crypto.Signer) error {
 	return nil
 }
 
-func (sig *MessageSignature) Verify(buf []byte) error {
+func (sig *MessageSignature) Verify(buf []byte, opts ...crypto.SignerOpts) error {
 	k, err := x509.ParsePKIXPublicKey(sig.Signer)
 	if err != nil {
 		return err
 	}
-	return Verify(k, buf, sig.Data, crypto.SHA256)
+	return Verify(k, buf, sig.Data, opts...)
 }
 
 func (r *MessageRecipient) OpenWith(k any) ([]byte, error) {
