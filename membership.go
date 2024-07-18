@@ -120,5 +120,5 @@ func (m *Membership) Verify(groupId *IDCard) error {
 		return err
 	}
 
-	return Verify(k, sigB, m.Signature)
+	return Verify(k, sigB, m.Signature, crypto.SHA256)
 }
