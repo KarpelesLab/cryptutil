@@ -1,6 +1,7 @@
 package cryptutil
 
 import (
+	"bytes"
 	"crypto"
 	"crypto/x509"
 	"errors"
@@ -79,4 +80,45 @@ func (m *Membership) Sign(rand io.Reader, key crypto.Signer, opts ...crypto.Sign
 	m.Signature = sig
 
 	return nil
+}
+
+// Verify ensures the signature is correct. If the group ID is known, it must be passed.
+func (m *Membership) Verify(groupId *IDCard) error {
+	if m.Subject == nil {
+		return errors.New("Subject must be filled prior to signing or verifying a Membership")
+	}
+	k, err := x509.ParsePKIXPublicKey(m.SignKey)
+	if err != nil {
+		return err
+	}
+	if groupId == nil {
+		// This equal check must be done only if id is nil
+		if !bytes.Equal(m.SignKey, m.Key) {
+			return errors.New("invalid signing key")
+		}
+	} else {
+		if !bytes.Equal(m.Key, groupId.Self) {
+			return errors.New("Invalid ID for group verification")
+		}
+		sub, err := groupId.findKey(k, false)
+		if err != nil {
+			return err
+		}
+		found := false
+		for _, pur := range sub.Purposes {
+			if pur == "sign" {
+				found = true
+				break
+			}
+		}
+		if !found {
+			return errors.New("the key cannot be used for signing")
+		}
+	}
+	sigB, err := m.SignatureBytes()
+	if err != nil {
+		return err
+	}
+
+	return Verify(k, sigB, m.Signature)
 }
