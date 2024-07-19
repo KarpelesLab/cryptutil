@@ -148,6 +148,7 @@ func (o *Opener) Open(b *Bottle) ([]byte, *OpenResult, error) {
 				return nil, res, ErrNoAppropriateKey
 			}
 			var k []byte
+			finalErr := ErrNoAppropriateKey
 			for _, sub := range b.Recipients {
 				decKey, ok := o.keys[sha256.Sum256(sub.Recipient)]
 				if ok {
@@ -155,11 +156,13 @@ func (o *Opener) Open(b *Bottle) ([]byte, *OpenResult, error) {
 					if err == nil {
 						k = buf
 						break
+					} else {
+						finalErr = err
 					}
 				}
 			}
 			if k == nil {
-				return nil, res, ErrNoAppropriateKey
+				return nil, res, finalErr
 			}
 			defer MemClr(k)
 
