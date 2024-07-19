@@ -7,8 +7,12 @@ import (
 	"crypto/ed25519"
 	"crypto/rsa"
 	"crypto/sha256"
+	"crypto/sha512"
+	"errors"
 	"fmt"
 	"io"
+
+	"github.com/ModChain/edwards25519/extra25519"
 )
 
 // EncryptShortBuffer performs a simple encryption of a buffer
@@ -23,7 +27,14 @@ func EncryptShortBuffer(rand io.Reader, k []byte, rcvd crypto.PublicKey) ([]byte
 		}
 		return EncryptShortBuffer(rand, k, nr)
 	case ed25519.PublicKey:
-		nr, err := ecdh.X25519().NewPublicKey(r[:])
+		// convert to montgomery
+		// u = (1 + y) / (1 - y)
+		var kex [32]byte
+		copy(kex[:], r)
+		if !extra25519.PublicKeyToCurve25519(&kex, &kex) {
+			return nil, errors.New("failed to set public key element for ed25519 key")
+		}
+		nr, err := ecdh.X25519().NewPublicKey(kex[:])
 		if err != nil {
 			return nil, err
 		}
@@ -48,7 +59,14 @@ func DecryptShortBuffer(k []byte, rcvd any) ([]byte, error) {
 			return r.Decrypt(nil, k, nil)
 		}
 	case ed25519.PrivateKey:
-		pk, err := ecdh.X25519().NewPrivateKey(r[:ed25519.PrivateKeySize])
+		// see: https://github.com/ModChain/edwards25519/blob/master/extra25519/extra25519.go#L16
+		digest := Hash(r.Seed(), sha512.New)[:32]
+
+		digest[0] &= 248
+		digest[31] &= 127
+		digest[31] |= 64
+
+		pk, err := ecdh.X25519().NewPrivateKey(digest)
 		if err != nil {
 			return nil, err
 		}
