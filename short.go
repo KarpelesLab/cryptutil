@@ -48,7 +48,7 @@ func DecryptShortBuffer(k []byte, rcvd any) ([]byte, error) {
 			return r.Decrypt(nil, k, nil)
 		}
 	case ed25519.PrivateKey:
-		pk, err := ecdh.X25519().NewPrivateKey(r)
+		pk, err := ecdh.X25519().NewPrivateKey(r[:ed25519.PrivateKeySize])
 		if err != nil {
 			return nil, err
 		}
