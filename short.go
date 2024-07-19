@@ -47,6 +47,12 @@ func DecryptShortBuffer(k []byte, rcvd any) ([]byte, error) {
 		default:
 			return r.Decrypt(nil, k, nil)
 		}
+	case ed25519.PrivateKey:
+		pk, err := ecdh.X25519().NewPrivateKey(r)
+		if err != nil {
+			return nil, err
+		}
+		return DecryptShortBuffer(k, pk)
 	case interface {
 		ECDH() (*ecdh.PrivateKey, error)
 	}:
