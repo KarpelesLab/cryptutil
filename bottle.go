@@ -6,6 +6,7 @@ import (
 	"crypto/cipher"
 	"crypto/x509"
 	"encoding/json"
+	"errors"
 	"io"
 
 	"github.com/fxamacker/cbor/v2"
@@ -101,6 +102,23 @@ func (m *Bottle) BottleUp() error {
 	m.Signatures = nil
 
 	return nil
+}
+
+// Child is the reverse operation as BottleUp and will return the bottle's child. This will fail
+// if the bottle is encrypted or does not contain another bottle.
+func (b *Bottle) Child() (*Bottle, error) {
+	switch b.Format {
+	case CborBottle:
+		var nb *Bottle
+		err := cbor.Unmarshal(b.Message, &nb)
+		return nb, err
+	case JsonBottle:
+		var nb *Bottle
+		err := json.Unmarshal(b.Message, &nb)
+		return nb, err
+	default:
+		return nil, errors.New("bottle does not contain another bottle or it is encrypted")
+	}
 }
 
 // IsCleanBottle returns true if the Bottle is clean (ie. so signature has been
