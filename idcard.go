@@ -88,12 +88,10 @@ func (id *IDCard) TestKeyPurpose(k crypto.PublicKey, purpose string) error {
 	if err != nil {
 		return err
 	}
-	for _, v := range sk.Purposes {
-		if v == purpose {
-			return nil
-		}
+	if !sk.HasPurpose(purpose) {
+		return fmt.Errorf("%w for purpose %s", ErrKeyUnfit, purpose)
 	}
-	return fmt.Errorf("%w for purpose %s", ErrKeyUnfit, purpose)
+	return nil
 }
 
 // FindKey locates the [SubKey] matching the given key, and optionally creates one if create is set to true
@@ -184,4 +182,13 @@ func (id *IDCard) Sign(rand io.Reader, k crypto.Signer) ([]byte, error) {
 	}
 
 	return cbor.Marshal(bottle)
+}
+
+func (sk *SubKey) HasPurpose(purpose string) bool {
+	for _, p := range sk.Purposes {
+		if purpose == p {
+			return true
+		}
+	}
+	return false
 }
