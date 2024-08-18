@@ -61,6 +61,7 @@ func DecryptShortBuffer(k []byte, rcvd any) ([]byte, error) {
 	case ed25519.PrivateKey:
 		// see: https://github.com/ModChain/edwards25519/blob/master/extra25519/extra25519.go#L16
 		digest := Hash(r.Seed(), sha512.New)[:32]
+		defer MemClr(digest)
 
 		digest[0] &= 248
 		digest[31] &= 127

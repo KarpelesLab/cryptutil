@@ -80,6 +80,20 @@ func (id *IDCard) GetKeys(purpose string) []crypto.PublicKey {
 	return res
 }
 
+// IsValidKey return whether the passed public keys is known to this id, and valid for the specified purpose
+func (id *IDCard) IsValidKey(k crypto.PublicKey, purpose string) bool {
+	sk, err := id.findKey(k, false)
+	if err != nil {
+		return false
+	}
+	for _, v := range sk.Purposes {
+		if v == purpose {
+			return true
+		}
+	}
+	return false
+}
+
 func (id *IDCard) findKey(k crypto.PublicKey, create bool) (*SubKey, error) {
 	bin, err := x509.MarshalPKIXPublicKey(k)
 	if err != nil {
