@@ -9,6 +9,7 @@ var (
 	ErrNoAppropriateKey = errors.New("no appropriate key available to open bottle")
 	ErrVerifyFailed     = errors.New("signature verification failed")
 	ErrKeyNotFound      = wraperr("the key was not found", fs.ErrNotExist)
+	ErrGroupNotFound    = wraperr("the group was not found", fs.ErrNotExist)
 	ErrKeyUnfit         = errors.New("the provided key was not fit")
 )
 

@@ -119,6 +119,25 @@ func (id *IDCard) FindKey(k crypto.PublicKey, create bool) (*SubKey, error) {
 	return sub, nil
 }
 
+// FindGroup locates the [Membership] matching the given key
+func (id *IDCard) FindGroup(k any) (*Membership, error) {
+	switch k := k.(type) {
+	case []byte:
+		for _, g := range id.Groups {
+			if bytes.Equal(g.Key, k) {
+				return g, nil
+			}
+		}
+		return nil, ErrGroupNotFound
+	default:
+		bin, err := x509.MarshalPKIXPublicKey(k)
+		if err != nil {
+			return nil, err
+		}
+		return id.FindGroup(bin)
+	}
+}
+
 // SetKeyPurposes specifies the purpose of a given key (sign, decrypt, etc)
 func (id *IDCard) SetKeyPurposes(k crypto.PublicKey, purposes ...string) error {
 	sub, err := id.FindKey(k, true)
