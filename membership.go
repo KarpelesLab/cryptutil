@@ -5,6 +5,7 @@ import (
 	"crypto"
 	"crypto/x509"
 	"errors"
+	"fmt"
 	"io"
 	"time"
 
@@ -100,19 +101,8 @@ func (m *Membership) Verify(groupId *IDCard) error {
 		if !bytes.Equal(m.Key, groupId.Self) {
 			return errors.New("Invalid ID for group verification")
 		}
-		sub, err := groupId.findKey(k, false)
-		if err != nil {
-			return err
-		}
-		found := false
-		for _, pur := range sub.Purposes {
-			if pur == "sign" {
-				found = true
-				break
-			}
-		}
-		if !found {
-			return errors.New("the key cannot be used for signing")
+		if err := groupId.TestKeyPurpose(k, "sign"); err != nil {
+			return fmt.Errorf("invalid signing key: %w", err)
 		}
 	}
 	sigB, err := m.SignatureBytes()

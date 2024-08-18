@@ -5,8 +5,8 @@ import (
 	"crypto"
 	"crypto/x509"
 	"errors"
+	"fmt"
 	"io"
-	"io/fs"
 	"time"
 
 	"github.com/fxamacker/cbor/v2"
@@ -54,6 +54,7 @@ func NewIDCard(k crypto.PublicKey) (*IDCard, error) {
 	return res, nil
 }
 
+// GetKeys returns all the keys of an IDCard that fit a given purpose
 func (id *IDCard) GetKeys(purpose string) []crypto.PublicKey {
 	var res []crypto.PublicKey
 	for _, sub := range id.SubKeys {
@@ -80,21 +81,23 @@ func (id *IDCard) GetKeys(purpose string) []crypto.PublicKey {
 	return res
 }
 
-// IsValidKey return whether the passed public keys is known to this id, and valid for the specified purpose
-func (id *IDCard) IsValidKey(k crypto.PublicKey, purpose string) bool {
-	sk, err := id.findKey(k, false)
+// TestKeyPurpose return nil if the provided key is fit for the given purpose, a not found error if the key
+// couldn't be found, or a ErrKeyUnfit
+func (id *IDCard) TestKeyPurpose(k crypto.PublicKey, purpose string) error {
+	sk, err := id.FindKey(k, false)
 	if err != nil {
-		return false
+		return err
 	}
 	for _, v := range sk.Purposes {
 		if v == purpose {
-			return true
+			return nil
 		}
 	}
-	return false
+	return fmt.Errorf("%w for purpose %s", ErrKeyUnfit, purpose)
 }
 
-func (id *IDCard) findKey(k crypto.PublicKey, create bool) (*SubKey, error) {
+// FindKey locates the [SubKey] matching the given key, and optionally creates one if create is set to true
+func (id *IDCard) FindKey(k crypto.PublicKey, create bool) (*SubKey, error) {
 	bin, err := x509.MarshalPKIXPublicKey(k)
 	if err != nil {
 		return nil, err
@@ -108,7 +111,7 @@ func (id *IDCard) findKey(k crypto.PublicKey, create bool) (*SubKey, error) {
 	}
 
 	if !create {
-		return nil, fs.ErrNotExist
+		return nil, ErrKeyNotFound
 	}
 	sub := &SubKey{
 		Key:    bin,
@@ -120,7 +123,7 @@ func (id *IDCard) findKey(k crypto.PublicKey, create bool) (*SubKey, error) {
 
 // SetKeyPurposes specifies the purpose of a given key (sign, decrypt, etc)
 func (id *IDCard) SetKeyPurposes(k crypto.PublicKey, purposes ...string) error {
-	sub, err := id.findKey(k, true)
+	sub, err := id.FindKey(k, true)
 	if err != nil {
 		return err
 	}
@@ -130,7 +133,7 @@ func (id *IDCard) SetKeyPurposes(k crypto.PublicKey, purposes ...string) error {
 
 // SetKeyDuration specifies the duration for the given key
 func (id *IDCard) SetKeyDuration(k crypto.PublicKey, t time.Duration) error {
-	sub, err := id.findKey(k, true)
+	sub, err := id.FindKey(k, true)
 	if err != nil {
 		return err
 	}
