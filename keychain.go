@@ -2,19 +2,28 @@ package cryptutil
 
 import (
 	"crypto"
+	"crypto/ecdh"
+	"crypto/ecdsa"
+	"crypto/ed25519"
+	"crypto/rsa"
 	"crypto/x509"
 	"fmt"
 	"io"
+	"time"
 )
+
+type privateKey interface {
+	Public() crypto.PublicKey
+}
 
 // Keychain is an object storing private keys that can be used to sign or decrypt things.
 type Keychain struct {
-	keys map[string]any
+	keys map[string]privateKey
 }
 
 // NewKeychain returns a new, empty keychain
 func NewKeychain() *Keychain {
-	return &Keychain{keys: make(map[string]any)}
+	return &Keychain{keys: make(map[string]privateKey)}
 }
 
 // AddKeys adds a number of keys to the keychain, and stops at the first error found.
@@ -30,7 +39,7 @@ func (kc *Keychain) AddKeys(keys ...any) error {
 // AddKey adds a key to the keychain. The value passed must be a PrivateKey whose Public() method returns a public key
 // object that can be marshalled by [crypto/x509.MarshalPKIXPublicKey].
 func (kc *Keychain) AddKey(k any) error {
-	ki, ok := k.(interface{ Public() crypto.PublicKey })
+	ki, ok := k.(privateKey)
 	if !ok {
 		if kc2, ok := k.(*Keychain); ok {
 			// add keys from a separate keychain
@@ -46,7 +55,7 @@ func (kc *Keychain) AddKey(k any) error {
 		return fmt.Errorf("unable to marshal public key: %w", err)
 	}
 
-	kc.keys[string(pub)] = k
+	kc.keys[string(pub)] = ki
 	return nil
 }
 
@@ -95,4 +104,39 @@ func (kc *Keychain) Sign(rand io.Reader, publicKey any, buf []byte, opts ...cryp
 		return nil, err
 	}
 	return Sign(rand, k, buf, opts...)
+}
+
+func (kc *Keychain) AsSubKeys() (res []*SubKey) {
+	now := time.Now()
+
+	for _, sk := range kc.keys {
+		pub := sk.Public()
+		pubBin, err := x509.MarshalPKIXPublicKey(pub)
+		if err != nil {
+			continue
+		}
+		subKey := &SubKey{
+			Key:      pubBin,
+			Issued:   now,
+			Purposes: guessPurposes(pub),
+		}
+		res = append(res, subKey)
+	}
+	return
+}
+
+func guessPurposes(pub crypto.PublicKey) []string {
+	switch pub.(type) {
+	case *rsa.PublicKey:
+		return []string{"sign", "decrypt"}
+	case *ecdsa.PublicKey:
+		return []string{"sign", "decrypt"}
+	case ed25519.PublicKey:
+		// ed25519 keys can't be used as is for encryption
+		return []string{"sign"}
+	case *ecdh.PublicKey:
+		return []string{"decrypt"}
+	default:
+		return nil
+	}
 }
