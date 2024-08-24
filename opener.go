@@ -1,11 +1,8 @@
 package cryptutil
 
 import (
-	"crypto"
 	"crypto/aes"
 	"crypto/cipher"
-	"crypto/sha256"
-	"crypto/x509"
 	"encoding/json"
 	"fmt"
 
@@ -14,7 +11,7 @@ import (
 
 // Opener allows opening a [Bottle]
 type Opener struct {
-	keys map[[32]byte]any
+	kc *Keychain
 }
 
 // EmptyOpener is an opener without any keys that can open bottles, but can't check keys
@@ -37,9 +34,9 @@ func (or *OpenResult) Last() *Bottle {
 
 // NewOpener returns an opener that can be used to open a [Bottle] using any or all of the given keys.
 func NewOpener(keys ...any) (*Opener, error) {
-	res := &Opener{keys: make(map[[32]byte]any)}
+	res := &Opener{kc: NewKeychain()}
 	for _, k := range keys {
-		if err := res.addKey(k); err != nil {
+		if err := res.kc.AddKey(k); err != nil {
 			return nil, err
 		}
 	}
@@ -56,17 +53,7 @@ func MustOpener(keys ...any) *Opener {
 }
 
 func (o *Opener) addKey(k any) error {
-	ki, ok := k.(interface{ Public() crypto.PublicKey })
-	if !ok {
-		return fmt.Errorf("unsupported key type %T", k)
-	}
-	pub, err := x509.MarshalPKIXPublicKey(ki.Public())
-	if err != nil {
-		return fmt.Errorf("unable to marshal public key: %w", err)
-	}
-	// we could also use string(pub), but having a string of non utf-8 data isn't something I like
-	o.keys[sha256.Sum256(pub)] = k
-	return nil
+	return o.kc.AddKey(k)
 }
 
 // UnmarshalJson will open the given json-encoded bottle and pour the contents into v
@@ -144,14 +131,14 @@ func (o *Opener) Open(b *Bottle) ([]byte, *OpenResult, error) {
 			}
 			b = nb
 		case AES:
-			if o.keys == nil {
+			if o.kc == nil {
 				return nil, res, ErrNoAppropriateKey
 			}
 			var k []byte
 			finalErr := ErrNoAppropriateKey
 			for _, sub := range b.Recipients {
-				decKey, ok := o.keys[sha256.Sum256(sub.Recipient)]
-				if ok {
+				decKey, err := o.kc.GetKey(sub.Recipient)
+				if err == nil {
 					buf, err := sub.OpenWith(decKey)
 					if err == nil {
 						k = buf
