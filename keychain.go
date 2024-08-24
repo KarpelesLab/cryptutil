@@ -4,6 +4,7 @@ import (
 	"crypto"
 	"crypto/x509"
 	"fmt"
+	"io"
 )
 
 // Keychain is an object storing private keys that can be used to sign or decrypt things.
@@ -16,11 +17,28 @@ func NewKeychain() *Keychain {
 	return &Keychain{keys: make(map[string]any)}
 }
 
+// AddKeys adds a number of keys to the keychain, and stops at the first error found.
+func (kc *Keychain) AddKeys(keys ...any) error {
+	for _, k := range keys {
+		if err := kc.AddKey(k); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 // AddKey adds a key to the keychain. The value passed must be a PrivateKey whose Public() method returns a public key
 // object that can be marshalled by [crypto/x509.MarshalPKIXPublicKey].
 func (kc *Keychain) AddKey(k any) error {
 	ki, ok := k.(interface{ Public() crypto.PublicKey })
 	if !ok {
+		if kc2, ok := k.(*Keychain); ok {
+			// add keys from a separate keychain
+			for subk, subv := range kc2.keys {
+				kc.keys[subk] = subv
+			}
+			return nil
+		}
 		return fmt.Errorf("unsupported key type %T", k)
 	}
 	pub, err := x509.MarshalPKIXPublicKey(ki.Public())
@@ -55,4 +73,26 @@ func (kc *Keychain) GetKey(public any) (any, error) {
 		}
 		return nil, fmt.Errorf("%w or public key type %T not supported", ErrKeyNotFound, public)
 	}
+}
+
+// GetSigner will return the signer matching the public key
+func (kc *Keychain) GetSigner(public any) (crypto.Signer, error) {
+	k, err := kc.GetKey(public)
+	if err != nil {
+		return nil, err
+	}
+	if s, ok := k.(crypto.Signer); ok {
+		return s, nil
+	}
+	return nil, fmt.Errorf("could not make a crypto.Signer of type %T", k)
+}
+
+// Sign will use the specified key from the keychain to sign the given buffer. Unlike Go's standard sign method, the
+// whole buffer should be passed and will be signed as needed.
+func (kc *Keychain) Sign(rand io.Reader, publicKey any, buf []byte, opts ...crypto.SignerOpts) ([]byte, error) {
+	k, err := kc.GetSigner(publicKey)
+	if err != nil {
+		return nil, err
+	}
+	return Sign(rand, k, buf, opts...)
 }
