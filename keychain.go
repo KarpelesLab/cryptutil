@@ -106,6 +106,7 @@ func (kc *Keychain) Sign(rand io.Reader, publicKey any, buf []byte, opts ...cryp
 	return Sign(rand, k, buf, opts...)
 }
 
+// AsSubKeys returns the keys inside the keychain as SubKeys
 func (kc *Keychain) AsSubKeys() (res []*SubKey) {
 	now := time.Now()
 

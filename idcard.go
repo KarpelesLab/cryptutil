@@ -203,6 +203,27 @@ func (id *IDCard) Sign(rand io.Reader, k crypto.Signer) ([]byte, error) {
 	return cbor.Marshal(bottle)
 }
 
+// AddKeychain adds the keys found in [Keychain] to the IDCard.
+func (id *IDCard) AddKeychain(kc *Keychain) {
+	now := time.Now()
+	known := make(map[string]bool)
+	for _, k := range id.SubKeys {
+		known[string(k.Key)] = true
+	}
+	for pub, priv := range kc.keys {
+		if _, found := known[pub]; found {
+			continue
+		}
+		sk := &SubKey{
+			Key:      []byte(pub),
+			Issued:   now,
+			Purposes: guessPurposes(priv.Public()),
+		}
+		id.SubKeys = append(id.SubKeys, sk)
+	}
+}
+
+// HasPurpose returns true if the key has the specified purpose listed
 func (sk *SubKey) HasPurpose(purpose string) bool {
 	for _, p := range sk.Purposes {
 		if purpose == p {
