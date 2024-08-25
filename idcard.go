@@ -3,6 +3,10 @@ package cryptutil
 import (
 	"bytes"
 	"crypto"
+	"crypto/ecdh"
+	"crypto/ecdsa"
+	"crypto/ed25519"
+	"crypto/rsa"
 	"crypto/x509"
 	"errors"
 	"fmt"
@@ -210,14 +214,45 @@ func (id *IDCard) AddKeychain(kc *Keychain) {
 	for _, k := range id.SubKeys {
 		known[string(k.Key)] = true
 	}
-	for pub, priv := range kc.keys {
-		if _, found := known[pub]; found {
+	for pubStr, priv := range kc.keys {
+		if _, found := known[pubStr]; found {
 			continue
 		}
+		known[pubStr] = true
+
+		pubBin := []byte(pubStr)
+		pub, err := x509.ParsePKIXPublicKey(pubBin)
+		if err != nil {
+			continue
+		}
+
+		var pur []string
+
+		switch pub.(type) {
+		case *rsa.PublicKey, *ecdsa.PublicKey, ed25519.PublicKey:
+			pur = []string{"sign"}
+			switch priv.(type) {
+			case interface {
+				ECDH() (*ecdh.PublicKey, error)
+			}:
+				// standard elliptic key, can be ECDH'd
+				pur = append(pur, "decrypt")
+			case crypto.Decrypter:
+				// standard RSA/etc key
+				pur = append(pur, "decrypt")
+			}
+		case *ecdh.PublicKey:
+			pur = []string{"decrypt"}
+		}
+		if pur == nil {
+			// unsupported public key?
+			continue
+		}
+
 		sk := &SubKey{
-			Key:      []byte(pub),
+			Key:      pubBin,
 			Issued:   now,
-			Purposes: guessPurposes(priv.Public()),
+			Purposes: pur,
 		}
 		id.SubKeys = append(id.SubKeys, sk)
 	}

@@ -1,15 +1,12 @@
 package cryptutil
 
 import (
+	"bytes"
 	"crypto"
 	"crypto/ecdh"
-	"crypto/ecdsa"
-	"crypto/ed25519"
-	"crypto/rsa"
 	"crypto/x509"
 	"fmt"
 	"io"
-	"time"
 )
 
 type privateKey interface {
@@ -56,6 +53,19 @@ func (kc *Keychain) AddKey(k any) error {
 	}
 
 	kc.keys[string(pub)] = ki
+
+	if ecdhPubProv, ok := k.(interface {
+		ECDHPublic() (*ecdh.PublicKey, error)
+	}); ok {
+		// the private key has a ECDHPublic() method that will return a different key
+		ecdhPub, err := ecdhPubProv.ECDHPublic()
+		if err == nil {
+			pub2, err := x509.MarshalPKIXPublicKey(ecdhPub)
+			if err == nil && !bytes.Equal(pub, pub2) {
+				kc.keys[string(pub2)] = ki
+			}
+		}
+	}
 	return nil
 }
 
@@ -104,40 +114,4 @@ func (kc *Keychain) Sign(rand io.Reader, publicKey any, buf []byte, opts ...cryp
 		return nil, err
 	}
 	return Sign(rand, k, buf, opts...)
-}
-
-// AsSubKeys returns the keys inside the keychain as SubKeys
-func (kc *Keychain) AsSubKeys() (res []*SubKey) {
-	now := time.Now()
-
-	for _, sk := range kc.keys {
-		pub := sk.Public()
-		pubBin, err := x509.MarshalPKIXPublicKey(pub)
-		if err != nil {
-			continue
-		}
-		subKey := &SubKey{
-			Key:      pubBin,
-			Issued:   now,
-			Purposes: guessPurposes(pub),
-		}
-		res = append(res, subKey)
-	}
-	return
-}
-
-func guessPurposes(pub crypto.PublicKey) []string {
-	switch pub.(type) {
-	case *rsa.PublicKey:
-		return []string{"sign", "decrypt"}
-	case *ecdsa.PublicKey:
-		return []string{"sign", "decrypt"}
-	case ed25519.PublicKey:
-		// ed25519 keys can't be used as is for encryption
-		return []string{"sign"}
-	case *ecdh.PublicKey:
-		return []string{"decrypt"}
-	default:
-		return nil
-	}
 }
