@@ -11,6 +11,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"slices"
 	"time"
 
 	"github.com/fxamacker/cbor/v2"
@@ -256,6 +257,48 @@ func (id *IDCard) AddKeychain(kc *Keychain) {
 		}
 		id.SubKeys = append(id.SubKeys, sk)
 	}
+}
+
+// UpdateGroups update the attached memberships based on the provided data
+func (id *IDCard) UpdateGroups(data [][]byte) error {
+	var err error
+
+main:
+	for _, buf := range data {
+		var m *Membership
+		err = cbor.Unmarshal(buf, &m)
+		if err != nil {
+			return fmt.Errorf("failed to unmarshal membership: %w", err)
+		}
+		// check if it's an update for us
+		if !bytes.Equal(m.Subject, id.Self) {
+			continue
+		}
+		// check signature
+		err = m.Verify(nil)
+		if err != nil {
+			return fmt.Errorf("failed to verify membership: %w", err)
+		}
+		if m.Status != "valid" {
+			// check if we have this membership, if so remove it
+			id.Groups = slices.DeleteFunc(id.Groups, func(sub *Membership) bool {
+				return bytes.Equal(sub.Key, m.Key)
+			})
+			continue
+		}
+		// remove subject
+		m.Subject = nil
+		// update membership if we have it
+		for n, sub := range id.Groups {
+			if bytes.Equal(sub.Key, m.Key) {
+				id.Groups[n] = m
+				continue main
+			}
+		}
+		// append
+		id.Groups = append(id.Groups, m)
+	}
+	return nil
 }
 
 // HasPurpose returns true if the key has the specified purpose listed
