@@ -30,7 +30,8 @@ func (kc *Keychain) AddKeys(keys ...any) error {
 }
 
 // AddKey adds a key to the keychain. The value passed must be a PrivateKey whose Public() method returns a public key
-// object that can be marshalled by [crypto/x509.MarshalPKIXPublicKey].
+// object that can be marshalled by [crypto/x509.MarshalPKIXPublicKey]. If another [Keychain] is passed all its keys
+// will be added.
 func (kc *Keychain) AddKey(k any) error {
 	ki, ok := k.(PrivateKey)
 	if !ok {
@@ -67,7 +68,7 @@ func (kc *Keychain) AddKey(k any) error {
 
 // GetKey returns the private key matching the passed public key, if known. A []byte of the PKIX marshalled public key
 // or a public key object can be passed.
-func (kc *Keychain) GetKey(public any) (any, error) {
+func (kc *Keychain) GetKey(public any) (PrivateKey, error) {
 	if kc == nil {
 		return nil, ErrKeyNotFound
 	}
