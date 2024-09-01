@@ -1,9 +1,7 @@
 package cryptutil
 
 import (
-	"bytes"
 	"crypto"
-	"crypto/ecdh"
 	"crypto/x509"
 	"fmt"
 	"io"
@@ -11,7 +9,8 @@ import (
 
 // Keychain is an object storing private keys that can be used to sign or decrypt things.
 type Keychain struct {
-	keys map[string]PrivateKey
+	keys    map[string]PrivateKey
+	signKey crypto.Signer
 }
 
 // NewKeychain returns a new, empty keychain
@@ -40,6 +39,9 @@ func (kc *Keychain) AddKey(k any) error {
 			for subk, subv := range kc2.keys {
 				kc.keys[subk] = subv
 			}
+			if kc.signKey == nil {
+				kc.signKey = kc2.signKey
+			}
 			return nil
 		}
 		return fmt.Errorf("unsupported key type %T", k)
@@ -51,18 +53,13 @@ func (kc *Keychain) AddKey(k any) error {
 
 	kc.keys[string(pub)] = ki
 
-	if ecdhPubProv, ok := k.(interface {
-		ECDHPublic() (*ecdh.PublicKey, error)
-	}); ok {
-		// the private key has a ECDHPublic() method that will return a different key
-		ecdhPub, err := ecdhPubProv.ECDHPublic()
-		if err == nil {
-			pub2, err := x509.MarshalPKIXPublicKey(ecdhPub)
-			if err == nil && !bytes.Equal(pub, pub2) {
-				kc.keys[string(pub2)] = ki
-			}
+	// if this is a signing key, set kc.signKey
+	if kc.signKey == nil {
+		if sig, ok := ki.(crypto.Signer); ok {
+			kc.signKey = sig
 		}
 	}
+
 	return nil
 }
 
@@ -89,6 +86,11 @@ func (kc *Keychain) GetKey(public any) (PrivateKey, error) {
 		}
 		return nil, fmt.Errorf("%w or public key type %T not supported", ErrKeyNotFound, public)
 	}
+}
+
+// FirstSigner returns the first [crypto.Signer] that was added to this [Keychain].
+func (kc *Keychain) FirstSigner() crypto.Signer {
+	return kc.signKey
 }
 
 // GetSigner will return the signer matching the public key
