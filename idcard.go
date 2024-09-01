@@ -88,7 +88,7 @@ func (id *IDCard) GetKeys(purpose string) []crypto.PublicKey {
 
 // TestKeyPurpose return nil if the provided key is fit for the given purpose, a not found error if the key
 // couldn't be found, or a ErrKeyUnfit
-func (id *IDCard) TestKeyPurpose(k crypto.PublicKey, purpose string) error {
+func (id *IDCard) TestKeyPurpose(k any, purpose string) error {
 	sk, err := id.FindKey(k, false)
 	if err != nil {
 		return err
@@ -100,28 +100,35 @@ func (id *IDCard) TestKeyPurpose(k crypto.PublicKey, purpose string) error {
 }
 
 // FindKey locates the [SubKey] matching the given key, and optionally creates one if create is set to true
-func (id *IDCard) FindKey(k crypto.PublicKey, create bool) (*SubKey, error) {
-	bin, err := x509.MarshalPKIXPublicKey(k)
-	if err != nil {
-		return nil, err
-	}
-
-	for _, sub := range id.SubKeys {
-		// we don't really care about being subtle here
-		if bytes.Equal(sub.Key, bin) {
-			return sub, nil
+func (id *IDCard) FindKey(k any, create bool) (*SubKey, error) {
+	switch v := k.(type) {
+	case interface{ Equal(x crypto.PublicKey) bool }:
+		// this is a pubkey
+		bin, err := x509.MarshalPKIXPublicKey(v)
+		if err != nil {
+			return nil, err
 		}
-	}
+		return id.FindKey(bin, create)
+	case []byte:
+		for _, sub := range id.SubKeys {
+			// we don't really care about being subtle here
+			if bytes.Equal(sub.Key, v) {
+				return sub, nil
+			}
+		}
 
-	if !create {
-		return nil, ErrKeyNotFound
+		if !create {
+			return nil, ErrKeyNotFound
+		}
+		sub := &SubKey{
+			Key:    v,
+			Issued: time.Now(),
+		}
+		id.SubKeys = append(id.SubKeys, sub)
+		return sub, nil
+	default:
+		return nil, fmt.Errorf("unsupported key type %T", k)
 	}
-	sub := &SubKey{
-		Key:    bin,
-		Issued: time.Now(),
-	}
-	id.SubKeys = append(id.SubKeys, sub)
-	return sub, nil
 }
 
 // FindGroup locates the [Membership] matching the given key
