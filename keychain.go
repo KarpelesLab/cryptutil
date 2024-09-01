@@ -9,18 +9,14 @@ import (
 	"io"
 )
 
-type privateKey interface {
-	Public() crypto.PublicKey
-}
-
 // Keychain is an object storing private keys that can be used to sign or decrypt things.
 type Keychain struct {
-	keys map[string]privateKey
+	keys map[string]PrivateKey
 }
 
 // NewKeychain returns a new, empty keychain
 func NewKeychain() *Keychain {
-	return &Keychain{keys: make(map[string]privateKey)}
+	return &Keychain{keys: make(map[string]PrivateKey)}
 }
 
 // AddKeys adds a number of keys to the keychain, and stops at the first error found.
@@ -36,7 +32,7 @@ func (kc *Keychain) AddKeys(keys ...any) error {
 // AddKey adds a key to the keychain. The value passed must be a PrivateKey whose Public() method returns a public key
 // object that can be marshalled by [crypto/x509.MarshalPKIXPublicKey].
 func (kc *Keychain) AddKey(k any) error {
-	ki, ok := k.(privateKey)
+	ki, ok := k.(PrivateKey)
 	if !ok {
 		if kc2, ok := k.(*Keychain); ok {
 			// add keys from a separate keychain
