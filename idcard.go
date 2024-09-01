@@ -232,12 +232,26 @@ func (id *IDCard) AddKeychain(kc *Keychain) {
 		switch pub.(type) {
 		case *rsa.PublicKey, *ecdsa.PublicKey, ed25519.PublicKey:
 			pur = []string{"sign"}
-			switch priv.(type) {
+			switch sub := priv.(type) {
 			case interface {
 				ECDH() (*ecdh.PublicKey, error)
 			}:
 				// standard elliptic key, can be ECDH'd
 				pur = append(pur, "decrypt")
+			case interface {
+				ECDH() (*ecdh.PrivateKey, error)
+			}:
+				privKey, err := sub.ECDH()
+				if err == nil {
+					subPub, err := x509.MarshalPKIXPublicKey(PublicKey(privKey))
+					if err != nil {
+						// is that a separate key?
+						if bytes.Equal(subPub, pubBin) {
+							// yes
+							pur = append(pur, "decrypt")
+						}
+					}
+				}
 			case crypto.Decrypter:
 				// standard RSA/etc key
 				pur = append(pur, "decrypt")
