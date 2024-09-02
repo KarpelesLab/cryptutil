@@ -12,6 +12,7 @@ import (
 	"fmt"
 	"io"
 	"slices"
+	"sort"
 	"time"
 
 	"github.com/fxamacker/cbor/v2"
@@ -218,16 +219,11 @@ func (id *IDCard) Sign(rand io.Reader, k crypto.Signer) ([]byte, error) {
 // AddKeychain adds the keys found in [Keychain] to the IDCard.
 func (id *IDCard) AddKeychain(kc *Keychain) {
 	now := time.Now()
-	known := make(map[string]bool)
+	known := make(map[string]*SubKey)
 	for _, k := range id.SubKeys {
-		known[string(k.Key)] = true
+		known[string(k.Key)] = k
 	}
 	for pubStr, priv := range kc.keys {
-		if _, found := known[pubStr]; found {
-			continue
-		}
-		known[pubStr] = true
-
 		pubBin := []byte(pubStr)
 		pub, err := x509.ParsePKIXPublicKey(pubBin)
 		if err != nil {
@@ -273,15 +269,17 @@ func (id *IDCard) AddKeychain(kc *Keychain) {
 						if bytes.Equal(subPub, pubBin) {
 							// yes
 							pur = append(pur, "decrypt")
-						} else if _, found := known[string(subPub)]; !found {
+						} else if sk, found := known[string(subPub)]; !found {
 							// append it now
-							known[string(subPub)] = true
-							sk := &SubKey{
+							sk = &SubKey{
 								Key:      subPub,
 								Issued:   now,
 								Purposes: []string{"decrypt"},
 							}
+							known[string(subPub)] = sk
 							id.SubKeys = append(id.SubKeys, sk)
+						} else {
+							sk.AddPurpose("decrypt")
 						}
 					}
 				}
@@ -297,11 +295,17 @@ func (id *IDCard) AddKeychain(kc *Keychain) {
 			continue
 		}
 
+		if sk, found := known[pubStr]; found {
+			sk.AddPurpose(pur...)
+			continue
+		}
+
 		sk := &SubKey{
 			Key:      pubBin,
 			Issued:   now,
 			Purposes: pur,
 		}
+		known[pubStr] = sk
 		id.SubKeys = append(id.SubKeys, sk)
 	}
 }
@@ -356,4 +360,13 @@ func (sk *SubKey) HasPurpose(purpose string) bool {
 		}
 	}
 	return false
+}
+
+func (sk *SubKey) AddPurpose(purpose ...string) {
+	for _, p := range purpose {
+		if !sk.HasPurpose(p) {
+			sk.Purposes = append(sk.Purposes, p)
+		}
+	}
+	sort.Strings(sk.Purposes)
 }
