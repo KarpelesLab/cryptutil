@@ -240,6 +240,8 @@ func (id *IDCard) AddKeychain(kc *Keychain) {
 				continue
 			}
 
+			sort.Strings(pur)
+
 			sk := &SubKey{
 				Key:      pubBin,
 				Issued:   now,
