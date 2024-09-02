@@ -1,8 +1,10 @@
 package cryptutil
 
 import (
+	"bytes"
 	"crypto/aes"
 	"crypto/cipher"
+	"crypto/x509"
 	"encoding/json"
 	"fmt"
 
@@ -178,5 +180,31 @@ func (o *Opener) Open(b *Bottle) ([]byte, *OpenResult, error) {
 			}
 			b = nb
 		}
+	}
+}
+
+// SignedBy returns true if the message was signed by the signer (either a public key or a [IDCard])
+func (or *OpenResult) SignedBy(signer any) bool {
+	switch v := signer.(type) {
+	case *IDCard:
+		keys := v.GetKeys("sign")
+		for _, k := range keys {
+			if or.SignedBy(k) {
+				return true
+			}
+		}
+		return false
+	default:
+		bin, err := x509.MarshalPKIXPublicKey(signer)
+		if err != nil {
+			return false
+		}
+		// find bin in or.Signatures
+		for _, sig := range or.Signatures {
+			if bytes.Equal(sig.Signer, bin) {
+				return true
+			}
+		}
+		return false
 	}
 }

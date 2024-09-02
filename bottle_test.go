@@ -27,6 +27,12 @@ func TestBottle(t *testing.T) {
 	if string(res) != "hello world!" {
 		t.Errorf("bad decrypt result in bottle")
 	}
+	if !info.SignedBy(alice.Public()) {
+		t.Errorf("message does not appear as signed by Alice")
+	}
+	if info.SignedBy(bob.Public()) {
+		t.Errorf("message appears signed by Bob but shouldn't")
+	}
 
 	log.Printf("bottle open res = %+v", info)
 }
