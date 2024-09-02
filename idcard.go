@@ -260,9 +260,7 @@ func (id *IDCard) AddKeychain(kc *Keychain) {
 
 			// check the private key to see if it also supports encryption
 			switch sub := priv.(type) {
-			case interface {
-				ECDH(remote *ecdh.PublicKey) ([]byte, error)
-			}:
+			case ECDHHandler:
 				// the key can be used for encryption directly
 				pur = append(pur, "decrypt")
 			case interface {
