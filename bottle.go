@@ -170,6 +170,9 @@ func (m *Bottle) Encrypt(rand io.Reader, recipients ...crypto.PublicKey) error {
 		}
 		final = append(final, rl...)
 	}
+	if len(final) == 0 {
+		return ErrEncryptNoRecipient
+	}
 
 	// set newly encrypted message
 	m.Message = append(nonce, newBuf...)
