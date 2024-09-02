@@ -239,23 +239,35 @@ func (id *IDCard) AddKeychain(kc *Keychain) {
 		switch pub.(type) {
 		case *rsa.PublicKey, *ecdsa.PublicKey, ed25519.PublicKey:
 			pur = []string{"sign"}
+
+			// check the private key to see if it also supports encryption
 			switch sub := priv.(type) {
 			case interface {
-				ECDH() (*ecdh.PublicKey, error)
+				ECDH(remote *ecdh.PublicKey) ([]byte, error)
 			}:
-				// standard elliptic key, can be ECDH'd
+				// the key can be used for encryption directly
 				pur = append(pur, "decrypt")
 			case interface {
 				ECDH() (*ecdh.PrivateKey, error)
 			}:
+				// the private key can be represented as a ECDH key, let's fetch it
 				privKey, err := sub.ECDH()
 				if err == nil {
 					subPub, err := x509.MarshalPKIXPublicKey(PublicKey(privKey))
 					if err != nil {
-						// is that a separate key?
+						// is that the exact same key? It shouldn't but let's check just in case
 						if bytes.Equal(subPub, pubBin) {
 							// yes
 							pur = append(pur, "decrypt")
+						} else if _, found := known[string(subPub)]; !found {
+							// append it now
+							known[string(subPub)] = true
+							sk := &SubKey{
+								Key:      subPub,
+								Issued:   now,
+								Purposes: []string{"decrypt"},
+							}
+							id.SubKeys = append(id.SubKeys, sk)
 						}
 					}
 				}
