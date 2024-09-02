@@ -234,6 +234,20 @@ func (id *IDCard) AddKeychain(kc *Keychain) {
 			continue
 		}
 
+		if obj, ok := priv.(interface{ KeyPurposes() []string }); ok {
+			pur := obj.KeyPurposes()
+			if len(pur) == 0 {
+				continue
+			}
+			sk := &SubKey{
+				Key:      pubBin,
+				Issued:   now,
+				Purposes: pur,
+			}
+			id.SubKeys = append(id.SubKeys, sk)
+			continue
+		}
+
 		var pur []string
 
 		switch pub.(type) {
@@ -278,7 +292,7 @@ func (id *IDCard) AddKeychain(kc *Keychain) {
 		case *ecdh.PublicKey:
 			pur = []string{"decrypt"}
 		}
-		if pur == nil {
+		if len(pur) == 0 {
 			// unsupported public key?
 			continue
 		}
