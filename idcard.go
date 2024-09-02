@@ -272,7 +272,7 @@ func (id *IDCard) AddKeychain(kc *Keychain) {
 				privKey, err := sub.ECDH()
 				if err == nil {
 					subPub, err := x509.MarshalPKIXPublicKey(PublicKey(privKey))
-					if err != nil {
+					if err == nil {
 						// is that the exact same key? It shouldn't but let's check just in case
 						if bytes.Equal(subPub, pubBin) {
 							// yes
