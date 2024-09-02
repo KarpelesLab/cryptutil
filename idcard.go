@@ -235,11 +235,17 @@ func (id *IDCard) AddKeychain(kc *Keychain) {
 			if len(pur) == 0 {
 				continue
 			}
+			if sk, found := known[pubStr]; found {
+				sk.AddPurpose(pur...)
+				continue
+			}
+
 			sk := &SubKey{
 				Key:      pubBin,
 				Issued:   now,
 				Purposes: pur,
 			}
+			known[pubStr] = sk
 			id.SubKeys = append(id.SubKeys, sk)
 			continue
 		}
