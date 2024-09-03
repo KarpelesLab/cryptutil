@@ -114,3 +114,10 @@ func (kc *Keychain) Sign(rand io.Reader, publicKey any, buf []byte, opts ...cryp
 	}
 	return Sign(rand, k, buf, opts...)
 }
+
+// All returns all the keys in the Keychain
+func (kc *Keychain) All(yield func(PrivateKey) bool) {
+	for _, key := range kc.keys {
+		yield(key)
+	}
+}
