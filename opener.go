@@ -7,6 +7,9 @@ import (
 	"crypto/x509"
 	"encoding/json"
 	"fmt"
+	"io"
+	"mime"
+	"net/http"
 
 	"github.com/fxamacker/cbor/v2"
 )
@@ -90,6 +93,15 @@ func (o *Opener) Unmarshal(b *Bottle, v any) (*OpenResult, error) {
 	}
 }
 
+// UnmarshalHttp will read the data from a [http.Request] and unmarshal it into v.
+func (o *Opener) UnmarshalHttp(req *http.Request, v any) (*OpenResult, error) {
+	b, err := httpToBottle(req)
+	if err != nil {
+		return nil, err
+	}
+	return o.Unmarshal(b, v)
+}
+
 // OpenCbor opens the given [Bottle] encoded as cbor data.
 func (o *Opener) OpenCbor(b []byte) ([]byte, *OpenResult, error) {
 	return o.Open(AsCborBottle(b))
@@ -98,6 +110,38 @@ func (o *Opener) OpenCbor(b []byte) ([]byte, *OpenResult, error) {
 // OpenJson opens the given [Bottle] encoded as json data.
 func (o *Opener) OpenJson(b []byte) ([]byte, *OpenResult, error) {
 	return o.Open(AsJsonBottle(b))
+}
+
+func httpToBottle(req *http.Request) (*Bottle, error) {
+	ct, _, err := mime.ParseMediaType(req.Header.Get("Content-Type"))
+	if err != nil {
+		return nil, fmt.Errorf("malformed Content-Type header: %w", err)
+	}
+	switch ct {
+	case "application/json":
+		data, err := io.ReadAll(req.Body)
+		if err != nil {
+			return nil, err
+		}
+		return AsJsonBottle(data), nil
+	case "application/cbor":
+		data, err := io.ReadAll(req.Body)
+		if err != nil {
+			return nil, err
+		}
+		return AsCborBottle(data), nil
+	default:
+		return nil, fmt.Errorf("unsupported data mime type %s", ct)
+	}
+}
+
+// OpenHttp will read the data from a [http.Request] handling the content-type header.
+func (o *Opener) OpenHttp(req *http.Request) ([]byte, *OpenResult, error) {
+	b, err := httpToBottle(req)
+	if err != nil {
+		return nil, nil, err
+	}
+	return o.Open(b)
 }
 
 // Open opens the given [Bottle], decrypting any encrypted elements, checking all signatures and returning the embedded buffer in the end
