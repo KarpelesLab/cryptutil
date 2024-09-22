@@ -28,13 +28,22 @@ type OpenResult struct {
 	Bottles    []*Bottle
 }
 
-// Last returns the last (inside-most) bottle
+// Last returns the last (inside-most) bottle, which will contain any relevant meta-data
 func (or *OpenResult) Last() *Bottle {
 	if len(or.Bottles) == 0 {
 		// should never happen
 		panic("OpenResult has no bottles")
 	}
 	return or.Bottles[len(or.Bottles)-1]
+}
+
+// First returns the first (outside-most) bottle, that will be what has been passed to Open
+func (or *OpenResult) First() *Bottle {
+	if len(or.Bottles) == 0 {
+		// should never happen
+		panic("OpenResult has no bottles")
+	}
+	return or.Bottles[0]
 }
 
 // NewOpener returns an opener that can be used to open a [Bottle] using any or all of the given keys.
