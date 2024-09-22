@@ -222,6 +222,13 @@ func makeRecipients(rand io.Reader, k []byte, r crypto.PublicKey) ([]*MessageRec
 //
 // Attempting to apply encryption to a message with a signature will always cause it to be bottled up
 func (m *Bottle) Sign(rand io.Reader, key crypto.Signer, opts ...crypto.SignerOpts) error {
+	if len(m.Header) > 0 {
+		err := m.BottleUp()
+		if err != nil {
+			return err
+		}
+	}
+
 	pubObj := key.Public()
 	pub, err := x509.MarshalPKIXPublicKey(pubObj)
 	if err != nil {
