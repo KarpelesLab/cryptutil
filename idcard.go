@@ -8,6 +8,7 @@ import (
 	"crypto/ed25519"
 	"crypto/rsa"
 	"crypto/x509"
+	"encoding/base64"
 	"errors"
 	"fmt"
 	"io"
@@ -375,4 +376,12 @@ func (sk *SubKey) AddPurpose(purpose ...string) {
 		}
 	}
 	sort.Strings(sk.Purposes)
+}
+
+func (sk *SubKey) String() string {
+	k := base64.RawURLEncoding.EncodeToString(sk.Key)
+	if sk.Expires == nil {
+		return fmt.Sprintf("SubKey[%s purposes:%v issued:%s]", k, sk.Purposes, sk.Issued)
+	}
+	return fmt.Sprintf("SubKey[%s purposes:%v issued:%s expires:%s]", k, sk.Purposes, sk.Issued, *sk.Expires)
 }
