@@ -118,6 +118,19 @@ func (kc *Keychain) Sign(rand io.Reader, publicKey any, buf []byte, opts ...cryp
 // All returns all the keys in the Keychain
 func (kc *Keychain) All(yield func(PrivateKey) bool) {
 	for _, key := range kc.keys {
-		yield(key)
+		if !yield(key) {
+			return
+		}
+	}
+}
+
+// Signers returns all the signing-capable keys in the Keychain
+func (kc *Keychain) Signers(yield func(crypto.Signer) bool) {
+	for _, key := range kc.keys {
+		if signer, ok := key.(crypto.Signer); ok {
+			if !yield(signer) {
+				return
+			}
+		}
 	}
 }
