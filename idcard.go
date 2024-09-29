@@ -158,7 +158,18 @@ func (id *IDCard) SetKeyPurposes(k crypto.PublicKey, purposes ...string) error {
 	if err != nil {
 		return err
 	}
+	sort.Strings(purposes)
 	sub.Purposes = purposes
+	return nil
+}
+
+// AddKeyPurpose adds the given purpose(s) to the given key
+func (id *IDCard) AddKeyPurpose(k crypto.PublicKey, purposes ...string) error {
+	sub, err := id.FindKey(k, true)
+	if err != nil {
+		return err
+	}
+	sub.AddPurpose(purposes...)
 	return nil
 }
 
