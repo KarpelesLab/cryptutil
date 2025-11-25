@@ -4,7 +4,6 @@ import (
 	"crypto"
 	"crypto/aes"
 	"crypto/cipher"
-	"crypto/x509"
 	"encoding/json"
 	"errors"
 	"io"
@@ -203,7 +202,8 @@ func makeRecipients(rand io.Reader, k []byte, r crypto.PublicKey) ([]*MessageRec
 		return nil, err
 	}
 
-	rBin, err := x509.MarshalPKIXPublicKey(r)
+	// Marshal the public key to PKIX format
+	rBin, err := MarshalPKIXPublicKey(r)
 	if err != nil {
 		return nil, err
 	}
@@ -230,7 +230,7 @@ func (m *Bottle) Sign(rand io.Reader, key crypto.Signer, opts ...crypto.SignerOp
 	}
 
 	pubObj := key.Public()
-	pub, err := x509.MarshalPKIXPublicKey(pubObj)
+	pub, err := MarshalPKIXPublicKey(pubObj)
 	if err != nil {
 		return err
 	}
@@ -247,7 +247,7 @@ func (m *Bottle) Sign(rand io.Reader, key crypto.Signer, opts ...crypto.SignerOp
 }
 
 func (sig *MessageSignature) Verify(buf []byte, opts ...crypto.SignerOpts) error {
-	k, err := x509.ParsePKIXPublicKey(sig.Signer)
+	k, err := ParsePKIXPublicKey(sig.Signer)
 	if err != nil {
 		return err
 	}

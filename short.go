@@ -41,6 +41,11 @@ func EncryptShortBuffer(rand io.Reader, k []byte, rcvd crypto.PublicKey) ([]byte
 		return EncryptShortBuffer(rand, k, nr)
 	case *ecdh.PublicKey:
 		return ECDHEncrypt(rand, k, r)
+	case *MLKEMPublicKey:
+		if r.IsHybrid() {
+			return HybridEncrypt(rand, k, r)
+		}
+		return MLKEMEncrypt(rand, k, r)
 	default:
 		return nil, fmt.Errorf("unsupported key type %T", r)
 	}
@@ -49,6 +54,8 @@ func EncryptShortBuffer(rand io.Reader, k []byte, rcvd crypto.PublicKey) ([]byte
 // DecryptShortBuffer decrypts a given buffer
 func DecryptShortBuffer(k []byte, rcvd any) ([]byte, error) {
 	switch r := rcvd.(type) {
+	case *MLKEMPrivateKey:
+		return MLKEMDecrypt(k, r)
 	case ECDHHandler:
 		return ECDHDecrypt(k, r)
 	case crypto.Decrypter:

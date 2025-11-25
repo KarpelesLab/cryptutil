@@ -3,7 +3,6 @@ package cryptutil
 import (
 	"bytes"
 	"crypto"
-	"crypto/x509"
 	"errors"
 	"fmt"
 	"io"
@@ -62,7 +61,7 @@ func (m *Membership) Sign(rand io.Reader, key crypto.Signer, opts ...crypto.Sign
 	}
 
 	pub := key.Public()
-	pubBin, err := x509.MarshalPKIXPublicKey(pub)
+	pubBin, err := MarshalPKIXPublicKey(pub)
 	if err != nil {
 		return err
 	}
@@ -88,7 +87,7 @@ func (m *Membership) Verify(groupId *IDCard) error {
 	if m.Subject == nil {
 		return errors.New("Subject must be filled prior to signing or verifying a Membership")
 	}
-	k, err := x509.ParsePKIXPublicKey(m.SignKey)
+	k, err := ParsePKIXPublicKey(m.SignKey)
 	if err != nil {
 		return err
 	}

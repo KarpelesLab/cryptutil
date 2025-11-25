@@ -7,7 +7,6 @@ import (
 	"crypto/ecdh"
 	"crypto/ecdsa"
 	"crypto/sha256"
-	"crypto/x509"
 	"encoding/binary"
 	"fmt"
 	"io"
@@ -33,7 +32,7 @@ func ECDHEncrypt(rnd io.Reader, data []byte, remote *ecdh.PublicKey) ([]byte, er
 	secretHash := Hash(secret, sha256.New)
 	defer MemClr(secretHash)
 
-	pub, err := x509.MarshalPKIXPublicKey(priv.Public())
+	pub, err := MarshalPKIXPublicKey(priv.Public())
 	if err != nil {
 		return nil, err
 	}
@@ -98,7 +97,7 @@ func ECDHDecrypt(data []byte, privateKey ECDHHandler) ([]byte, error) {
 		if err != nil {
 			return nil, e(err)
 		}
-		pubkeyObj, err := x509.ParsePKIXPublicKey(pubkey)
+		pubkeyObj, err := ParsePKIXPublicKey(pubkey)
 		if err != nil {
 			return nil, e(err)
 		}

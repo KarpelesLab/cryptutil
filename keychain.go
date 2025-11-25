@@ -2,7 +2,6 @@ package cryptutil
 
 import (
 	"crypto"
-	"crypto/x509"
 	"fmt"
 	"io"
 )
@@ -29,9 +28,19 @@ func (kc *Keychain) AddKeys(keys ...any) error {
 }
 
 // AddKey adds a key to the keychain. The value passed must be a PrivateKey whose Public() method returns a public key
-// object that can be marshalled by [crypto/x509.MarshalPKIXPublicKey]. If another [Keychain] is passed all its keys
-// will be added.
+// object that can be marshalled by [crypto/x509.MarshalPKIXPublicKey], or an [MLKEMPrivateKey]. If another [Keychain]
+// is passed all its keys will be added.
 func (kc *Keychain) AddKey(k any) error {
+	// Handle ML-KEM keys specially - use PKIX encoding
+	if mlkemKey, ok := k.(*MLKEMPrivateKey); ok {
+		pub, err := mlkemKey.MLKEMPublic().MarshalPKIXPublicKey()
+		if err != nil {
+			return fmt.Errorf("failed to marshal ML-KEM public key: %w", err)
+		}
+		kc.keys[string(pub)] = mlkemKey
+		return nil
+	}
+
 	ki, ok := k.(PrivateKey)
 	if !ok {
 		if kc2, ok := k.(*Keychain); ok {
@@ -46,7 +55,7 @@ func (kc *Keychain) AddKey(k any) error {
 		}
 		return fmt.Errorf("unsupported key type %T", k)
 	}
-	pub, err := x509.MarshalPKIXPublicKey(ki.Public())
+	pub, err := MarshalPKIXPublicKey(ki.Public())
 	if err != nil {
 		return fmt.Errorf("unable to marshal public key: %w", err)
 	}
@@ -63,8 +72,8 @@ func (kc *Keychain) AddKey(k any) error {
 	return nil
 }
 
-// GetKey returns the private key matching the passed public key, if known. A []byte of the PKIX marshalled public key
-// or a public key object can be passed.
+// GetKey returns the private key matching the passed public key, if known. A []byte of the PKIX marshalled public key,
+// a public key object, or an [MLKEMPublicKey] can be passed.
 func (kc *Keychain) GetKey(public any) (PrivateKey, error) {
 	if kc == nil {
 		return nil, ErrKeyNotFound
@@ -76,8 +85,17 @@ func (kc *Keychain) GetKey(public any) (PrivateKey, error) {
 			return v, nil
 		}
 		return nil, ErrKeyNotFound
+	case *MLKEMPublicKey:
+		buf, err := p.MarshalPKIXPublicKey()
+		if err != nil {
+			return nil, err
+		}
+		if v, ok := kc.keys[string(buf)]; ok {
+			return v, nil
+		}
+		return nil, ErrKeyNotFound
 	default:
-		buf, err := x509.MarshalPKIXPublicKey(public)
+		buf, err := MarshalPKIXPublicKey(public)
 		if err != nil {
 			return nil, err
 		}

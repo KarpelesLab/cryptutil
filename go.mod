@@ -1,6 +1,6 @@
 module github.com/KarpelesLab/cryptutil
 
-go 1.22.2
+go 1.24
 
 require (
 	github.com/ModChain/edwards25519 v1.0.0

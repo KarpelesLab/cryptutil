@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"crypto/aes"
 	"crypto/cipher"
-	"crypto/x509"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -248,7 +247,7 @@ func (or *OpenResult) SignedBy(signer any) bool {
 		}
 		return false
 	default:
-		bin, err := x509.MarshalPKIXPublicKey(signer)
+		bin, err := MarshalPKIXPublicKey(signer)
 		if err != nil {
 			return false
 		}

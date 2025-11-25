@@ -7,7 +7,6 @@ import (
 	"crypto/ecdsa"
 	"crypto/ed25519"
 	"crypto/rsa"
-	"crypto/x509"
 	"encoding/base64"
 	"errors"
 	"fmt"
@@ -40,7 +39,7 @@ type SubKey struct {
 
 // NewIDCard generates a new ID card for the given public key
 func NewIDCard(k crypto.PublicKey) (*IDCard, error) {
-	pub, err := x509.MarshalPKIXPublicKey(k)
+	pub, err := MarshalPKIXPublicKey(k)
 	if err != nil {
 		return nil, err
 	}
@@ -80,7 +79,7 @@ func (id *IDCard) GetKeys(purpose string) []crypto.PublicKey {
 				continue
 			}
 		}
-		dec, err := x509.ParsePKIXPublicKey(sub.Key)
+		dec, err := ParsePKIXPublicKey(sub.Key)
 		if err == nil {
 			res = append(res, dec)
 		}
@@ -106,7 +105,7 @@ func (id *IDCard) FindKey(k any, create bool) (*SubKey, error) {
 	switch v := k.(type) {
 	case interface{ Equal(x crypto.PublicKey) bool }:
 		// this is a pubkey
-		bin, err := x509.MarshalPKIXPublicKey(v)
+		bin, err := MarshalPKIXPublicKey(v)
 		if err != nil {
 			return nil, err
 		}
@@ -144,7 +143,7 @@ func (id *IDCard) FindGroup(k any) (*Membership, error) {
 		}
 		return nil, ErrGroupNotFound
 	default:
-		bin, err := x509.MarshalPKIXPublicKey(k)
+		bin, err := MarshalPKIXPublicKey(k)
 		if err != nil {
 			return nil, err
 		}
@@ -237,7 +236,7 @@ func (id *IDCard) AddKeychain(kc *Keychain) {
 	}
 	for pubStr, priv := range kc.keys {
 		pubBin := []byte(pubStr)
-		pub, err := x509.ParsePKIXPublicKey(pubBin)
+		pub, err := ParsePKIXPublicKey(pubBin)
 		if err != nil {
 			continue
 		}
@@ -281,7 +280,7 @@ func (id *IDCard) AddKeychain(kc *Keychain) {
 				// the private key can be represented as a ECDH key, let's fetch it
 				privKey, err := sub.ECDH()
 				if err == nil {
-					subPub, err := x509.MarshalPKIXPublicKey(PublicKey(privKey))
+					subPub, err := MarshalPKIXPublicKey(PublicKey(privKey))
 					if err == nil {
 						// is that the exact same key? It shouldn't but let's check just in case
 						if bytes.Equal(subPub, pubBin) {
@@ -306,6 +305,8 @@ func (id *IDCard) AddKeychain(kc *Keychain) {
 				pur = append(pur, "decrypt")
 			}
 		case *ecdh.PublicKey:
+			pur = []string{"decrypt"}
+		case *MLKEMPublicKey:
 			pur = []string{"decrypt"}
 		}
 		if len(pur) == 0 {
