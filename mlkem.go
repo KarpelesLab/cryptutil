@@ -21,8 +21,8 @@ var (
 	oidMLKEM768  = asn1.ObjectIdentifier{2, 16, 840, 1, 101, 3, 4, 4, 2}
 	oidMLKEM1024 = asn1.ObjectIdentifier{2, 16, 840, 1, 101, 3, 4, 4, 3}
 
-	// OID for X25519
-	oidX25519 = asn1.ObjectIdentifier{1, 3, 101, 110}
+	// OID for X25519 (reserved for future use)
+	_ = asn1.ObjectIdentifier{1, 3, 101, 110}
 
 	// Composite KEM OID (id-MLKEM768-X25519) - draft-ietf-lamps-pq-composite-kem
 	// Using a placeholder OID under our own arc for now until standardized

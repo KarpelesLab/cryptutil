@@ -65,10 +65,6 @@ func MustOpener(keys ...any) *Opener {
 	return op
 }
 
-func (o *Opener) addKey(k any) error {
-	return o.kc.AddKey(k)
-}
-
 // UnmarshalJson will open the given json-encoded bottle and pour the contents into v
 func (o *Opener) UnmarshalJson(b []byte, v any) (*OpenResult, error) {
 	return o.Unmarshal(AsJsonBottle(b), v)

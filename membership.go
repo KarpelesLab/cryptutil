@@ -57,7 +57,7 @@ func (m *Membership) SignatureBytes() ([]byte, error) {
 // Sign signs the membership using the provided key
 func (m *Membership) Sign(rand io.Reader, key crypto.Signer, opts ...crypto.SignerOpts) error {
 	if m.Subject == nil {
-		return errors.New("Subject must be filled prior to signing or verifying a Membership")
+		return errors.New("subject must be filled prior to signing or verifying a Membership")
 	}
 
 	pub := key.Public()
@@ -85,7 +85,7 @@ func (m *Membership) Sign(rand io.Reader, key crypto.Signer, opts ...crypto.Sign
 // Verify ensures the signature is correct. If the group ID is known, it must be passed.
 func (m *Membership) Verify(groupId *IDCard) error {
 	if m.Subject == nil {
-		return errors.New("Subject must be filled prior to signing or verifying a Membership")
+		return errors.New("subject must be filled prior to signing or verifying a Membership")
 	}
 	k, err := ParsePKIXPublicKey(m.SignKey)
 	if err != nil {
@@ -98,7 +98,7 @@ func (m *Membership) Verify(groupId *IDCard) error {
 		}
 	} else {
 		if !bytes.Equal(m.Key, groupId.Self) {
-			return errors.New("Invalid ID for group verification")
+			return errors.New("invalid ID for group verification")
 		}
 		if err := groupId.TestKeyPurpose(k, "sign"); err != nil {
 			return fmt.Errorf("invalid signing key: %w", err)
