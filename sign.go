@@ -7,6 +7,8 @@ import (
 	"crypto/rsa"
 	"fmt"
 	"io"
+
+	"github.com/KarpelesLab/mldsa"
 )
 
 // Sign generates a signature for the given buffer. Hash will be performed as needed
@@ -31,6 +33,13 @@ func Sign(rand io.Reader, key crypto.Signer, buf []byte, opts ...crypto.SignerOp
 			return key.Sign(rand, Hash(buf, hf.New), hf)
 		}
 		return key.Sign(rand, buf, crypto.Hash(0))
+	case *mldsa.PublicKey44, *mldsa.PublicKey65, *mldsa.PublicKey87:
+		// ML-DSA signs messages directly (no pre-hashing)
+		var opt crypto.SignerOpts
+		if mldsaOpt := getSignerOpt[mldsa.SignerOpts](opts); mldsaOpt != nil {
+			opt = mldsaOpt
+		}
+		return key.Sign(rand, buf, opt)
 	default:
 		hf := getHashFunc(opts)
 		return key.Sign(rand, Hash(buf, hf.New), hf)
@@ -68,6 +77,8 @@ func Verify(key crypto.PublicKey, buf, sig []byte, opts ...crypto.SignerOpts) er
 			return ErrVerifyFailed
 		}
 		return nil
+	case *mldsa.PublicKey44, *mldsa.PublicKey65, *mldsa.PublicKey87:
+		return mldsaVerify(pub, buf, sig, opts...)
 	default:
 		return fmt.Errorf("unsupported signature key type %T", key)
 	}
