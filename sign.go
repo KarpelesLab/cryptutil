@@ -9,6 +9,7 @@ import (
 	"io"
 
 	"github.com/KarpelesLab/mldsa"
+	"github.com/KarpelesLab/slhdsa"
 )
 
 // Sign generates a signature for the given buffer. Hash will be performed as needed
@@ -38,6 +39,13 @@ func Sign(rand io.Reader, key crypto.Signer, buf []byte, opts ...crypto.SignerOp
 		var opt crypto.SignerOpts
 		if mldsaOpt := getSignerOpt[mldsa.SignerOpts](opts); mldsaOpt != nil {
 			opt = mldsaOpt
+		}
+		return key.Sign(rand, buf, opt)
+	case *slhdsa.PublicKey:
+		// SLH-DSA signs messages directly (no pre-hashing)
+		var opt crypto.SignerOpts
+		if slhdsaOpt := getSignerOpt[slhdsa.Options](opts); slhdsaOpt != nil {
+			opt = slhdsaOpt
 		}
 		return key.Sign(rand, buf, opt)
 	default:
@@ -79,6 +87,8 @@ func Verify(key crypto.PublicKey, buf, sig []byte, opts ...crypto.SignerOpts) er
 		return nil
 	case *mldsa.PublicKey44, *mldsa.PublicKey65, *mldsa.PublicKey87:
 		return mldsaVerify(pub, buf, sig, opts...)
+	case *slhdsa.PublicKey:
+		return slhdsaVerify(pub, buf, sig, opts...)
 	default:
 		return fmt.Errorf("unsupported signature key type %T", key)
 	}

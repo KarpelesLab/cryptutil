@@ -9,5 +9,6 @@ require (
 
 require (
 	github.com/KarpelesLab/mldsa v0.1.1 // indirect
+	github.com/KarpelesLab/slhdsa v0.1.0 // indirect
 	github.com/x448/float16 v0.8.4 // indirect
 )

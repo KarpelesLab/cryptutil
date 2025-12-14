@@ -18,6 +18,7 @@ Requires Go 1.24 or later.
 - **Bottle**: Layered message containers with encryption and signatures
 - **ML-KEM**: Post-quantum encryption (ML-KEM-768, ML-KEM-1024) with optional X25519 hybrid mode
 - **ML-DSA**: Post-quantum signatures (ML-DSA-44, ML-DSA-65, ML-DSA-87)
+- **SLH-DSA**: Stateless hash-based post-quantum signatures (12 parameter sets)
 - **ECDH Encryption**: Simple message encryption to ECDSA/ECDH keys
 - **IDCard**: Identity management with sub-keys and key purposes
 - **Keychain**: Secure key storage and management
@@ -209,6 +210,85 @@ privateKey, err := cryptutil.ParseMLDSAPrivateKey(privDER)
 publicKey, err := cryptutil.ParsePKIXPublicKey(pubDER)
 ```
 
+## SLH-DSA Post-Quantum Signatures
+
+SLH-DSA (Stateless Hash-Based Digital Signature Algorithm, also known as SPHINCS+) provides quantum-resistant digital signatures based on hash functions. It offers strong security guarantees without relying on lattice assumptions. Twelve parameter sets are supported:
+
+**SHA2-based:**
+- **SLH-DSA-SHA2-128s/128f**: NIST security level 1
+- **SLH-DSA-SHA2-192s/192f**: NIST security level 3
+- **SLH-DSA-SHA2-256s/256f**: NIST security level 5
+
+**SHAKE-based:**
+- **SLH-DSA-SHAKE-128s/128f**: NIST security level 1
+- **SLH-DSA-SHAKE-192s/192f**: NIST security level 3
+- **SLH-DSA-SHAKE-256s/256f**: NIST security level 5
+
+The "s" variants are optimized for smaller signatures, while "f" variants are optimized for faster signing.
+
+### Key Generation
+
+```go
+import "github.com/KarpelesLab/slhdsa"
+
+// Generate SLH-DSA-SHA2-128s key (small signatures)
+key, err := slhdsa.GenerateKey(rand.Reader, slhdsa.SHA2_128s)
+
+// Generate SLH-DSA-SHA2-128f key (fast signing)
+key, err := slhdsa.GenerateKey(rand.Reader, slhdsa.SHA2_128f)
+
+// Higher security levels
+key192, err := slhdsa.GenerateKey(rand.Reader, slhdsa.SHA2_192s)
+key256, err := slhdsa.GenerateKey(rand.Reader, slhdsa.SHA2_256s)
+
+// SHAKE-based variants
+keyShake, err := slhdsa.GenerateKey(rand.Reader, slhdsa.SHAKE_128s)
+```
+
+### Signing and Verification
+
+```go
+// Sign a message (SLH-DSA signs messages directly, no pre-hashing)
+signature, err := cryptutil.Sign(rand.Reader, key, message)
+
+// Verify signature
+err = cryptutil.Verify(key.Public(), message, signature)
+
+// Sign with context for domain separation
+opts := &slhdsa.Options{Context: []byte("my-application")}
+signature, err := cryptutil.Sign(rand.Reader, key, message, opts)
+err = cryptutil.Verify(key.Public(), message, signature, opts)
+```
+
+### Using SLH-DSA with Bottles
+
+```go
+// SLH-DSA keys work seamlessly with bottles
+key, _ := slhdsa.GenerateKey(rand.Reader, slhdsa.SHA2_128s)
+
+bottle := cryptutil.NewBottle([]byte("hash-based signed message"))
+bottle.Sign(rand.Reader, key)
+
+// Verify on open
+opener := cryptutil.MustOpener()
+msg, info, err := opener.Open(bottle)
+if info.SignedBy(key.Public()) {
+    fmt.Println("Verified SLH-DSA signature")
+}
+```
+
+### Key Serialization
+
+```go
+// Marshal to PKCS#8 (private) / PKIX (public)
+privDER, err := cryptutil.MarshalSLHDSAPrivateKey(key)
+pubDER, err := cryptutil.MarshalPKIXPublicKey(key.Public())
+
+// Parse from DER
+privateKey, err := cryptutil.ParseSLHDSAPrivateKey(privDER)
+publicKey, err := cryptutil.ParsePKIXPublicKey(pubDER)
+```
+
 ## ECDH Message Encryption
 
 Simple encryption to ECDSA/ECDH keys, supporting TPM and HSM backends through the `ECDHHandler` interface.
@@ -379,9 +459,8 @@ digest := cryptutil.Hash(data, sha256.New, sha256.New)
 | ML-KEM-768 | ✗ | ✓ | ✓ |
 | ML-KEM-1024 | ✗ | ✓ | ✓ |
 | ML-KEM + X25519 (Hybrid) | ✗ | ✓ | ✓ |
-| ML-DSA-44 | ✓ | ✗ | ✓ |
-| ML-DSA-65 | ✓ | ✗ | ✓ |
-| ML-DSA-87 | ✓ | ✗ | ✓ |
+| ML-DSA-44/65/87 | ✓ | ✗ | ✓ |
+| SLH-DSA (12 variants) | ✓ | ✗ | ✓ |
 
 ## Error Handling
 

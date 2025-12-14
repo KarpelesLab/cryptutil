@@ -1,5 +1,7 @@
 github.com/KarpelesLab/mldsa v0.1.1 h1:ql1YN/5R2cQ74Bi05EUiMrOkcl++GrRVNBX4SCJALuU=
 github.com/KarpelesLab/mldsa v0.1.1/go.mod h1:x1T4Gyd86wpLwnk1LafWJCqD3EwvhZKXK+0QfHgqZBk=
+github.com/KarpelesLab/slhdsa v0.1.0 h1:5qAT+oWF5ENEXQA6qrgpHNwwt1GXPwjKSjplFSqcEp0=
+github.com/KarpelesLab/slhdsa v0.1.0/go.mod h1:VpvPoyXGXABOX0ahkrS260BZrVZWIt5pD9g5waVWsWw=
 github.com/ModChain/edwards25519 v1.0.0 h1:Geww/chivFY6E/mZgA4chVf4HWvUgJ1LdRZ0v2d25Eo=
 github.com/ModChain/edwards25519 v1.0.0/go.mod h1:kjiZ1iVWnsHVMHeIgWFu26ik6/jPlE+c9MrfO5wbLm4=
 github.com/fxamacker/cbor v1.5.1 h1:XjQWBgdmQyqimslUh5r4tUGmoqzHmBFQOImkWGi2awg=
