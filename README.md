@@ -3,7 +3,7 @@
 
 # cryptutil
 
-A comprehensive Go cryptographic utility library providing high-level APIs for encryption, signing, and key management. Supports both classical (ECDSA, Ed25519, RSA) and post-quantum (ML-KEM) cryptography.
+A comprehensive Go cryptographic utility library providing high-level APIs for encryption, signing, and key management. Supports both classical (ECDSA, Ed25519, RSA) and post-quantum (ML-KEM, ML-DSA) cryptography.
 
 ## Installation
 
@@ -17,6 +17,7 @@ Requires Go 1.24 or later.
 
 - **Bottle**: Layered message containers with encryption and signatures
 - **ML-KEM**: Post-quantum encryption (ML-KEM-768, ML-KEM-1024) with optional X25519 hybrid mode
+- **ML-DSA**: Post-quantum signatures (ML-DSA-44, ML-DSA-65, ML-DSA-87)
 - **ECDH Encryption**: Simple message encryption to ECDSA/ECDH keys
 - **IDCard**: Identity management with sub-keys and key purposes
 - **Keychain**: Secure key storage and management
@@ -143,6 +144,71 @@ privateKey, err := cryptutil.ParseMLKEMPrivateKey(privDER)
 publicKey, err := cryptutil.ParseMLKEMPublicKey(pubDER)
 ```
 
+## ML-DSA Post-Quantum Signatures
+
+ML-DSA (Module-Lattice Digital Signature Algorithm, formerly CRYSTALS-Dilithium) provides quantum-resistant digital signatures. Three security levels are supported:
+
+- **ML-DSA-44**: NIST security level 2 (comparable to AES-128)
+- **ML-DSA-65**: NIST security level 3 (comparable to AES-192)
+- **ML-DSA-87**: NIST security level 5 (comparable to AES-256)
+
+### Key Generation
+
+```go
+import "github.com/KarpelesLab/mldsa"
+
+// Generate ML-DSA-65 key (recommended)
+key, err := mldsa.GenerateKey65(rand.Reader)
+
+// Other variants
+key44, err := mldsa.GenerateKey44(rand.Reader)  // Level 2
+key87, err := mldsa.GenerateKey87(rand.Reader)  // Level 5
+```
+
+### Signing and Verification
+
+```go
+// Sign a message (ML-DSA signs messages directly, no pre-hashing)
+signature, err := cryptutil.Sign(rand.Reader, key, message)
+
+// Verify signature
+err = cryptutil.Verify(key.PublicKey(), message, signature)
+
+// Sign with context for domain separation
+opts := &mldsa.SignerOpts{Context: []byte("my-application")}
+signature, err := cryptutil.Sign(rand.Reader, key, message, opts)
+err = cryptutil.Verify(key.PublicKey(), message, signature, opts)
+```
+
+### Using ML-DSA with Bottles
+
+```go
+// ML-DSA keys work seamlessly with bottles
+key, _ := mldsa.GenerateKey65(rand.Reader)
+
+bottle := cryptutil.NewBottle([]byte("quantum-safe signed message"))
+bottle.Sign(rand.Reader, key)
+
+// Verify on open
+opener := cryptutil.MustOpener()
+msg, info, err := opener.Open(bottle)
+if info.SignedBy(key.PublicKey()) {
+    fmt.Println("Verified ML-DSA signature")
+}
+```
+
+### Key Serialization
+
+```go
+// Marshal to PKCS#8 (private) / PKIX (public)
+privDER, err := cryptutil.MarshalMLDSAPrivateKey(key)
+pubDER, err := cryptutil.MarshalPKIXPublicKey(key.PublicKey())
+
+// Parse from DER
+privateKey, err := cryptutil.ParseMLDSAPrivateKey(privDER)
+publicKey, err := cryptutil.ParsePKIXPublicKey(pubDER)
+```
+
 ## ECDH Message Encryption
 
 Simple encryption to ECDSA/ECDH keys, supporting TPM and HSM backends through the `ECDHHandler` interface.
@@ -260,13 +326,13 @@ if err != nil {
 
 ### PKIX Key Marshaling
 
-Extended PKIX support including ML-KEM keys:
+Extended PKIX support including ML-KEM and ML-DSA keys:
 
 ```go
 // Marshal any public key to PKIX format
 der, err := cryptutil.MarshalPKIXPublicKey(publicKey)
 
-// Parse PKIX public key (supports ML-KEM)
+// Parse PKIX public key (supports ML-KEM, ML-DSA)
 publicKey, err := cryptutil.ParsePKIXPublicKey(der)
 ```
 
@@ -313,6 +379,9 @@ digest := cryptutil.Hash(data, sha256.New, sha256.New)
 | ML-KEM-768 | ✗ | ✓ | ✓ |
 | ML-KEM-1024 | ✗ | ✓ | ✓ |
 | ML-KEM + X25519 (Hybrid) | ✗ | ✓ | ✓ |
+| ML-DSA-44 | ✓ | ✗ | ✓ |
+| ML-DSA-65 | ✓ | ✗ | ✓ |
+| ML-DSA-87 | ✓ | ✗ | ✓ |
 
 ## Error Handling
 
