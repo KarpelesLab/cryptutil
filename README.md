@@ -3,6 +3,13 @@
 
 # cryptutil
 
+> **DEPRECATED**: This package has been renamed and moved to [github.com/BottleFmt/gobottle](https://github.com/BottleFmt/gobottle).
+> Please update your imports:
+> ```bash
+> go get github.com/BottleFmt/gobottle@latest
+> ```
+> Then change your imports from `github.com/KarpelesLab/cryptutil` to `github.com/BottleFmt/gobottle`.
+
 A comprehensive Go cryptographic utility library providing high-level APIs for encryption, signing, and key management. Supports both classical (ECDSA, Ed25519, RSA) and post-quantum (ML-KEM, ML-DSA) cryptography.
 
 ## Installation

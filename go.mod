@@ -1,3 +1,4 @@
+// Deprecated: This module has been renamed. Please use github.com/BottleFmt/gobottle instead.
 module github.com/KarpelesLab/cryptutil
 
 go 1.24
