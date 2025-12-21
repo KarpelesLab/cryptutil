@@ -1,12 +1,14 @@
+github.com/BottleFmt/gobottle v1.0.0 h1:9B3jVvusEItcHcdvDHhPshzcl/zhVCobVDrgZ+f3sDg=
+github.com/BottleFmt/gobottle v1.0.0/go.mod h1:atZzDqFCpzjHuLg4bPE5wWFJWqxS5+UtTkxiJbSyKtY=
 github.com/KarpelesLab/mldsa v0.1.1 h1:ql1YN/5R2cQ74Bi05EUiMrOkcl++GrRVNBX4SCJALuU=
 github.com/KarpelesLab/mldsa v0.1.1/go.mod h1:x1T4Gyd86wpLwnk1LafWJCqD3EwvhZKXK+0QfHgqZBk=
 github.com/KarpelesLab/slhdsa v0.1.0 h1:5qAT+oWF5ENEXQA6qrgpHNwwt1GXPwjKSjplFSqcEp0=
 github.com/KarpelesLab/slhdsa v0.1.0/go.mod h1:VpvPoyXGXABOX0ahkrS260BZrVZWIt5pD9g5waVWsWw=
 github.com/ModChain/edwards25519 v1.0.0 h1:Geww/chivFY6E/mZgA4chVf4HWvUgJ1LdRZ0v2d25Eo=
 github.com/ModChain/edwards25519 v1.0.0/go.mod h1:kjiZ1iVWnsHVMHeIgWFu26ik6/jPlE+c9MrfO5wbLm4=
-github.com/fxamacker/cbor v1.5.1 h1:XjQWBgdmQyqimslUh5r4tUGmoqzHmBFQOImkWGi2awg=
-github.com/fxamacker/cbor v1.5.1/go.mod h1:3aPGItF174ni7dDzd6JZ206H8cmr4GDNBGpPa971zsU=
 github.com/fxamacker/cbor/v2 v2.7.0 h1:iM5WgngdRBanHcxugY4JySA0nk1wZorNOpTgCMedv5E=
 github.com/fxamacker/cbor/v2 v2.7.0/go.mod h1:pxXPTn3joSm21Gbwsv0w9OSA2y1HFR9qXEeXQVeNoDQ=
 github.com/x448/float16 v0.8.4 h1:qLwI1I70+NjRFUR3zs1JPUCgaCXSh3SW62uAKT1mSBM=
 github.com/x448/float16 v0.8.4/go.mod h1:14CWIYCyZA/cWjXOioeEpHeN/83MdbZDRQHoFcYsOfg=
+golang.org/x/crypto v0.23.0 h1:dIJU/v2J8Mdglj/8rJ6UUOM3Zc9zLZxVZwwxMooUSAI=
+golang.org/x/crypto v0.23.0/go.mod h1:CKFgDieR+mRhux2Lsu27y0fO304Db0wZe70UKqHu0v8=
